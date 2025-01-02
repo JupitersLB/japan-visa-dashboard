@@ -26,6 +26,7 @@ export default {
         highlight: {
           DEFAULT: '#6B21A8',
         },
+        accent: '#FFD700',
         neutral: {
           DEFAULT: '#374151',
         },
