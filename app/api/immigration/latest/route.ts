@@ -1,23 +1,26 @@
-import fs from 'fs'
-import path from 'path'
 import { NextResponse } from 'next/server'
 import { ImmigrationResponse } from '@/utils/types'
+import { getCachedData } from '@/utils/cacheHelper'
+import { isPresent } from '@/utils/isPresent'
 
 export async function GET() {
+  let data: ImmigrationResponse[] | null = null
+
   try {
-    const filePath = path.join(process.cwd(), 'data', 'immigration_data.json')
-    const fileContents = fs.readFileSync(filePath, 'utf8')
-    const data = JSON.parse(fileContents) as ImmigrationResponse[]
-
-    if (Array.isArray(data) && data.length > 0) {
-      return NextResponse.json(data[0])
-    }
-
-    return NextResponse.json({ error: 'No data available.' }, { status: 404 })
+    data = await getCachedData()
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to fetch newest date.' },
+      { message: 'Error reading the data file.' },
       { status: 500 }
     )
   }
+
+  if (!isPresent(data)) {
+    return NextResponse.json(
+      { message: 'Data file not found.' },
+      { status: 404 }
+    )
+  }
+
+  return NextResponse.json(data[0])
 }

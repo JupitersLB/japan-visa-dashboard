@@ -55,19 +55,37 @@ export type ImmigrationResponse = {
   count: number
 }
 
+export type Insight = {
+  monthly_average: number
+  recent_monthly_change: number | null
+  sorted_monthly_data: {
+    timestamp: number
+    count: number
+    mom_change: number | null
+  }[]
+  standard_deviation: number
+  weighted_monthly_average: number
+  anomalies: [number, string, number][] // timestamp _ count
+}
+
 export type StatResponse = {
   [K in ApplicationType]: {
-    [P in ProcessingCategory]: {
-      monthly_average: number
-      recent_monthly_change: number
-      sorted_monthly_data: {
-        timestamp: number
-        count: number
-        mom_change: number
-      }[]
-      standard_deviation: number
-      weighted_monthly_average: number
-      anomalies: [number, ProcessingCategory, number] // timestamp _ count
-    }
+    [P in ProcessingCategory]: Insight
   }
+}
+
+export interface IBurnDownHash {
+  month: string
+  remainingActual: number | null
+  remainingAveragePredictedBurn: number | null
+  remainingWeightedPredictedBurn: number | null
+  [key: string]: string | number | null // Arbitrary for echarts
+}
+
+export interface PredictedData {
+  burnDownData: IBurnDownHash[]
+  predictedZeroMonthAverage: DateTime | null
+  predictedZeroMonthWeighted: DateTime | null
+  monthlyAverage: number
+  monthlyWeighted: number
 }

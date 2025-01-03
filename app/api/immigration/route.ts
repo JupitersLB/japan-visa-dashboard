@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
-import fs from 'fs'
 import { DateTime } from 'luxon'
+import { getCachedData } from '@/utils/cacheHelper'
+import { ImmigrationResponse } from '@/utils/types'
+import { isPresent } from '@/utils/isPresent'
 
 export async function POST(req: NextRequest) {
-  // Resolve the file path
-  const filePath = path.join(process.cwd(), 'data', 'immigration_data.json')
-
-  // Check if the file exists
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json(
-      { message: 'Data file not found.' },
-      { status: 404 }
-    )
-  }
-
-  // Parse the request body
   const { location, application_type, processing_category, from } = await req
     .json()
     .catch(() => {
@@ -25,7 +14,6 @@ export async function POST(req: NextRequest) {
       )
     })
 
-  // Validate the `from` date
   if (from && !DateTime.fromISO(from).isValid) {
     return NextResponse.json(
       {
@@ -35,10 +23,24 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Read and parse the data file
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+  let data: ImmigrationResponse[] | null = null
 
-  // Filter data using reduce
+  try {
+    data = await getCachedData()
+  } catch (error) {
+    return NextResponse.json(
+      { message: 'Error reading the data file.' },
+      { status: 500 }
+    )
+  }
+
+  if (!isPresent(data)) {
+    return NextResponse.json(
+      { message: 'Data file not found.' },
+      { status: 404 }
+    )
+  }
+
   const filteredData = data.reduce((result: any[], entry: any) => {
     if (location && entry.location !== location) return result
     if (application_type && entry.application_type !== application_type)
@@ -59,6 +61,5 @@ export async function POST(req: NextRequest) {
     return result
   }, [])
 
-  // Return the filtered data
   return NextResponse.json(filteredData)
 }

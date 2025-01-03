@@ -1,4 +1,3 @@
-'use client'
 import { ApplicationPrediction } from './_components/ApplicationPrediction'
 
 export default function Home() {

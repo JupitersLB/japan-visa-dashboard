@@ -1,0 +1,8 @@
+keys:
+  - &liam age1ur7edttkehphtrmeq6tqm8nummg6eve52yyvnqx7nh9rxq6hjc5q5qxvg9
+
+creation_rules:
+  - path_regex: 'secrets/*'
+    key_groups:
+      - age:
+          - *liam

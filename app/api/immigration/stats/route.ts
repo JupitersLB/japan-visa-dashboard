@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
-import fs from 'fs'
 import { DateTime } from 'luxon'
 import { ImmigrationResponse } from '@/utils/types'
 import { calculateInsights } from '@/utils/insightEngine'
+import { getCachedData } from '@/utils/cacheHelper'
+import { isPresent } from '@/utils/isPresent'
 
 export async function POST(req: NextRequest) {
-  // Resolve the file path
-  const filePath = path.join(process.cwd(), 'data', 'immigration_data.json')
-
-  // Check if the file exists
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json(
-      { message: 'Data file not found.' },
-      { status: 404 }
-    )
-  }
-
   const requestData = await req.json().catch(() => null)
 
   if (!requestData) {
@@ -31,13 +20,28 @@ export async function POST(req: NextRequest) {
     to,
   } = requestData
 
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+  let data: ImmigrationResponse[] | null = null
+
+  try {
+    data = await getCachedData()
+  } catch (error) {
+    return NextResponse.json(
+      { message: 'Error reading the data file.' },
+      { status: 500 }
+    )
+  }
+
+  if (!isPresent(data)) {
+    return NextResponse.json(
+      { message: 'Data file not found.' },
+      { status: 404 }
+    )
+  }
 
   // Use the first entry as the latest date
   const latestEntry = data[0]
   const toDate = to || latestEntry?.date
 
-  // Set default `from` as one year before `to`
   const fromDate = from || DateTime.fromISO(toDate).minus({ years: 1 }).toISO()
 
   if (
@@ -57,7 +61,6 @@ export async function POST(req: NextRequest) {
     ) => {
       const entryDate = DateTime.fromISO(entry.date)
 
-      // Apply the filter criteria
       if (
         entry.location === location &&
         (!application_type || entry.application_type === application_type) &&
@@ -66,17 +69,14 @@ export async function POST(req: NextRequest) {
         entryDate >= DateTime.fromISO(fromDate) &&
         entryDate <= DateTime.fromISO(toDate)
       ) {
-        // Initialize group for application_type if it doesn't exist
         if (!acc[entry.application_type]) {
           acc[entry.application_type] = {}
         }
 
-        // Initialize group for processing_category if it doesn't exist
         if (!acc[entry.application_type][entry.processing_category]) {
           acc[entry.application_type][entry.processing_category] = []
         }
 
-        // Add the entry to the respective group
         acc[entry.application_type][entry.processing_category].push(entry)
       }
 
