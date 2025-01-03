@@ -11,6 +11,7 @@ secrets:
 	sops -d secrets/immigration_data.enc.json > data/immigration_data.json
 
 build: secrets
+	cp .env .env.docker
 	docker build -t $(IMAGE) .
 
 push: build

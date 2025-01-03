@@ -6,6 +6,7 @@ import Script from 'next/script'
 import { GoogleAnalytics } from './_components/analytics'
 import { Provider as RollbarProvider } from '@rollbar/react'
 import { clientConfig } from '@/utils/rollbar'
+import newrelic from 'newrelic'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -26,11 +27,22 @@ export const metadata: Metadata = {
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID
 const isProduction = process.env.NODE_ENV === 'production'
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  if ((newrelic as any).agent.collector.isConnected() === false) {
+    await new Promise((resolve) => {
+      ;(newrelic as any).agent.on('connected', resolve)
+    })
+  }
+
+  const browserTimingHeader = newrelic.getBrowserTimingHeader({
+    hasToRemoveScriptWrapper: true,
+    allowTransactionlessInjection: true,
+  })
+
   return (
     <RollbarProvider config={clientConfig}>
       <html lang="en">
@@ -42,6 +54,7 @@ export default function RootLayout({
             />
           )}
         </head>
+
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
@@ -50,6 +63,13 @@ export default function RootLayout({
             isProduction={isProduction}
           />
           <ClientLayout>{children}</ClientLayout>
+          {isProduction && (
+            <Script
+              id="nr-browser-agent"
+              strategy="beforeInteractive"
+              dangerouslySetInnerHTML={{ __html: browserTimingHeader }}
+            />
+          )}
         </body>
       </html>
     </RollbarProvider>

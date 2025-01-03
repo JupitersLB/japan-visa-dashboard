@@ -7,6 +7,7 @@ COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 COPY . .
+COPY .env.docker .env
 
 RUN yarn build && rm -rf .next/cache
 
@@ -21,11 +22,13 @@ COPY --from=builder /build/package.json /build/yarn.lock ./
 RUN yarn install --frozen-lockfile --production && yarn cache clean && rm -rf /root/.npm
 
 # Copy the built application and necessary files
-COPY --from=builder /build/.next .next
-COPY --from=builder /build/public public
-COPY --from=builder /build/next.config.ts next.config.ts
 COPY --from=builder /build/data data
 COPY --from=builder /build/utils utils
+COPY --from=builder /build/public public
+COPY --from=builder /build/.next .next
+COPY --from=builder /build/.env .env
+COPY --from=builder /build/next.config.ts next.config.ts
+COPY --from=builder /build/newrelic.js newrelic.js
 
 ENV NODE_ENV=production
 
