@@ -4,10 +4,6 @@ import React, { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
-interface ClientLayoutProps {
-  children: ReactNode
-}
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -19,7 +15,7 @@ const queryClient = new QueryClient({
   },
 })
 
-export const ClientLayout = ({ children }: ClientLayoutProps) => (
+export const ClientLayout = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={queryClient}>
     {children}
     {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
