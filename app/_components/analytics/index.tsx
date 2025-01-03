@@ -17,7 +17,7 @@ export const GoogleAnalytics: FC<{
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
 
-          gtag('config', ${measurementId});
+          gtag('config', '${measurementId}');
         `}
       </Script>
     </>

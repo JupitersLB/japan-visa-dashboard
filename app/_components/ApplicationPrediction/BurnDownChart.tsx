@@ -1,10 +1,10 @@
 import React, { FC } from 'react'
-import { PredictedData } from '@/utils/predictionEngine'
 import { JBChart } from '../graphing/JBChart'
 import { GraphPlaceholder } from './GraphPlaceholder'
 import { isPresent } from '@/utils/isPresent'
 import { TooltipComponentFormatterCallbackParams } from 'echarts'
 import { colors } from '@/utils/tailwind'
+import { PredictedData } from '@/utils/types'
 
 const formatTooltip = (params: TooltipComponentFormatterCallbackParams) => {
   if (!Array.isArray(params)) return ''
@@ -170,7 +170,7 @@ export const BurnDownChart: FC<{
         }}
         media={[
           {
-            query: { maxWidth: 500 }, // For smaller screens
+            query: { maxWidth: 500 },
             option: {
               legend: {
                 orient: 'horizontal',
@@ -183,7 +183,7 @@ export const BurnDownChart: FC<{
             },
           },
           {
-            query: { minWidth: 501 }, // For larger screens
+            query: { minWidth: 501 },
             option: {
               legend: {
                 orient: 'horizontal',

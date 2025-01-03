@@ -20,7 +20,7 @@ export const JBChart: FC<{
   yAxis?: YAXisComponentOption | YAXisComponentOption[]
   legend?: LegendComponentOption
   dataset?: DatasetComponentOption
-  media?: echarts.EChartsCoreOption['media'] // Media queries are dynamic
+  media?: echarts.EChartsCoreOption['media']
 }> = ({
   series,
   tooltip,
@@ -51,18 +51,17 @@ export const JBChart: FC<{
         ...(xAxis && { xAxis }),
         ...(yAxis && { yAxis }),
         ...(legend && { legend }),
-        ...(media && { media }), // Dynamically include media
+        ...(media && { media }),
       }
 
       chart.setOption(initialOption)
 
-      // Cleanup function
       return () => {
         chart.dispose()
         chartInstanceRef.current = null
       }
     }
-  }, [chartRef.current]) // Run once on mount
+  }, [chartRef.current])
 
   // Update chart options when props change
   useEffect(() => {
@@ -77,7 +76,7 @@ export const JBChart: FC<{
         ...(xAxis && { xAxis }),
         ...(yAxis && { yAxis }),
         ...(legend && { legend }),
-        ...(media && { media }), // Dynamically update media
+        ...(media && { media }),
       }
 
       chart.setOption(updatedOption)

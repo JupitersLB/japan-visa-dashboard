@@ -31,7 +31,7 @@ const initialValues: PredictionFormData = {
 export const ApplicationPrediction: FC = () => {
   const {
     mutateAsync: calcStats,
-    data: computedStats = {} as StatResponse[ApplicationType],
+    data: computedStats,
     isPending: isPendingStats,
   } = useJBMutation<
     StatResponse[ApplicationType],
@@ -83,10 +83,17 @@ export const ApplicationPrediction: FC = () => {
     burnDownData,
     predictedZeroMonthAverage,
     predictedZeroMonthWeighted,
-  } = useMemo(
-    () => predictionEngine(data, computedStats),
-    [data, computedStats]
-  )
+  } = useMemo(() => {
+    if (!isPresent(data) || !isPresent(computedStats)) {
+      return {
+        burnDownData: [],
+        predictedZeroMonthAverage: null,
+        predictedZeroMonthWeighted: null,
+      }
+    }
+
+    return predictionEngine(data, computedStats)
+  }, [data, computedStats])
 
   const handleFormSubmit = (formData: PredictionFormData) => {
     calcStats(formData)
