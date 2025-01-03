@@ -4,6 +4,8 @@ import './globals.css'
 import { ClientLayout } from './ClientLayout'
 import Script from 'next/script'
 import { GoogleAnalytics } from './_components/analytics'
+import { Provider as RollbarProvider } from '@rollbar/react'
+import { clientConfig } from '@/utils/rollbar'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -30,24 +32,26 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <head>
-        {isProduction && (
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
-            strategy="afterInteractive"
+    <RollbarProvider config={clientConfig}>
+      <html lang="en">
+        <head>
+          {isProduction && (
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
+              strategy="afterInteractive"
+            />
+          )}
+        </head>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <GoogleAnalytics
+            measurementId={GA_TRACKING_ID}
+            isProduction={isProduction}
           />
-        )}
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <GoogleAnalytics
-          measurementId={GA_TRACKING_ID}
-          isProduction={isProduction}
-        />
-        <ClientLayout>{children}</ClientLayout>
-      </body>
-    </html>
+          <ClientLayout>{children}</ClientLayout>
+        </body>
+      </html>
+    </RollbarProvider>
   )
 }
