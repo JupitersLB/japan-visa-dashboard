@@ -1,4 +1,6 @@
+'use strict'
 import type { NextConfig } from 'next'
+const nrExternals = require('newrelic/load-externals')
 
 const nextConfig: NextConfig = {
   reactStrictMode: true, // Helps identify potential problems in your app
@@ -9,6 +11,11 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     ignoreBuildErrors: false, // Ensure TypeScript errors block production builds
+  },
+  serverExternalPackages: ['newrelic'],
+  webpack: (config) => {
+    nrExternals(config)
+    return config
   },
 }
 
