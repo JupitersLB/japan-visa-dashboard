@@ -22,7 +22,7 @@ export const DatePickerWrapper: FC<DatePickerWrapperProps> = ({
       if (date) {
         onChange(DateTime.fromJSDate(date).startOf('month'))
       } else {
-        onChange(null) // Handle clearing the date
+        onChange(null)
       }
     }}
     showMonthYearPicker

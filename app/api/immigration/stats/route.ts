@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Use the first entry as the latest date
   const latestEntry = data[0]
   const toDate = to || latestEntry?.date
 
