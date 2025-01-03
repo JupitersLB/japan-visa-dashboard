@@ -27,7 +27,7 @@ export const getCachedData = () => {
   return fs
     .readFile(filePath, 'utf8')
     .then((data) => {
-      cachedData = JSON.parse(data)
+      cachedData = JSON.parse(data).data
       lastCacheTime = currentTime
       return cachedData
     })
