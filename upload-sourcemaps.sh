@@ -26,7 +26,7 @@ fi
 # Upload sourcemaps to Rollbar
 echo "Uploading sourcemaps to Rollbar..."
 find ./local-sourcemaps -name '*.map' | while read -r sourcemap; do
-    MINIFIED_URL="${NEXT_PUBLIC_BASE_URL}/_next/static/chunks/$(basename "$sourcemap" .map)"
+    MINIFIED_URL="${NEXT_PUBLIC_BASE_URL}_next/static/chunks/$(basename "$sourcemap" .map)"
     echo "Uploading $sourcemap for $MINIFIED_URL..."
     curl --request POST \
         --url https://api.rollbar.com/api/1/sourcemap \
