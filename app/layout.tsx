@@ -19,9 +19,24 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL as string),
   title: 'Japan Visa Predictions',
   description:
     'A modern platform providing predictive analytics for visa application processing timelines in Japan. Featuring interactive charts and user-friendly input fields for precise and personalized insights.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'Japan Visa Predictions',
+    description:
+      'Predictive analytics for visa application processing timelines in Japan.',
+    url: process.env.NEXT_PUBLIC_BASE_URL,
+    siteName: 'Japan Visa Predictions',
+    locale: 'en_US',
+    type: 'website',
+  },
 }
 
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID
