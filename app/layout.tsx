@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    apple: '/metadata/apple-touch-icon.png',
   },
   openGraph: {
     title: 'Japan Visa Predictions',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: 'Japan Visa Predictions',
     images: [
       {
-        url: '/og-image.png',
+        url: '/metadata/og-image.png',
         width: 1200,
         height: 630,
         alt: 'A predictive analytics chart showing visa timelines',

@@ -29,7 +29,7 @@ export const PredictionDisplay: FC<{
 
   return (
     <div className="flex flex-col items-center justify-center text-center rounded-lg text-foreground">
-      <h2 className="text-base md:text-xl font-semibold">Prediction</h2>
+      <h2 className="text-base md:text-xl font-semibold">Estimation</h2>
       <p className="text-lg md:text-2xl font-bold">{displayText}</p>
     </div>
   )
