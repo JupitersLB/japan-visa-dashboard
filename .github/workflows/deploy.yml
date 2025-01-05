@@ -22,6 +22,14 @@ jobs:
         with:
           workload_identity_provider: 'projects/143436458586/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider'
           service_account: 'github-actions-sa@japan-visa-predictions.iam.gserviceaccount.com'
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Debug GCloud Authentication
+        run: |
+          gcloud auth list
+          gcloud config list
+          gcloud projects list
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
