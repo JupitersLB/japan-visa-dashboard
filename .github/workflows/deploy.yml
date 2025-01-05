@@ -14,9 +14,11 @@ jobs:
       id-token: 'write'
 
     steps:
+      # Step 1: Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # Step 2: Authenticate to Google Cloud
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
@@ -25,23 +27,45 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
+      # Step 3: Debug GCloud Authentication
       - name: Debug GCloud Authentication
         run: |
+          echo "Auth List:"
           gcloud auth list
+          echo "Config List:"
           gcloud config list
+          echo "Projects List:"
           gcloud projects list
 
+      # Step 4: Verify OIDC Token
+      - name: Verify OIDC Token
+        run: |
+          echo "Fetching OIDC token..."
+          TOKEN=$(curl -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                        "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r .value)
+          echo "OIDC Token: $TOKEN"
+          echo "Decoded Token:"
+          echo "$TOKEN" | base64 -d | jq .
+        env:
+          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ steps.authenticate-to-google-cloud.outputs.actions_id_token_request_url }}
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ steps.authenticate-to-google-cloud.outputs.actions_id_token_request_token }}
+        shell: bash
+
+      # Step 5: Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: japan-visa-predictions
 
+      # Step 6: Install Dependencies
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y docker.io sops
 
+      # Step 7: Export SOPS Private Key
       - name: Export SOPS Private Key
         run: echo "${{ secrets.CI_AGE_KEY }}" > ~/.age-key
 
+      # Step 8: Deploy to Cloud Run
       - name: Deploy to Cloud Run
         env:
           SOPS_AGE_KEY_FILE: ~/.age-key
