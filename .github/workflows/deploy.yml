@@ -30,7 +30,12 @@ jobs:
           project_id: japan-visa-predictions
 
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y docker.io sops
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          curl -sSL https://github.com/mozilla/sops/releases/latest/download/sops-linux-amd64 \
+            -o /usr/local/bin/sops
+          chmod +x /usr/local/bin/sops
 
       - name: Export SOPS Private Key
         run: echo "${{ secrets.CI_AGE_KEY }}" > ~/.age-key
