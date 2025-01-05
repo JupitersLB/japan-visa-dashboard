@@ -3,7 +3,7 @@ name: CI/CD Deployment to Cloud Run
 on:
   push:
     branches:
-      - '**'
+      - master
 
 jobs:
   deploy:
