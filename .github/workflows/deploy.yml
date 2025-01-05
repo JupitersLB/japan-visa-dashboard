@@ -1,0 +1,54 @@
+name: CI/CD Deployment to Cloud Run
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+          create_credentials_file: true
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: japan-visa-predictions
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v2
+
+      - name: Install sops
+        uses: nhedger/setup-sops@v2
+        with:
+          version: 'latest'
+
+      - name: Generate SOPS Keys
+        run: |
+          echo "${{ secrets.CI_AGE_KEY }}" > keys.txt
+          export SOPS_AGE_KEY_FILE=./keys.txt
+
+      - name: Prepare Cloud End
+        run: |
+          gcloud --quiet components update
+          gcloud --quiet components install beta
+          gcloud auth configure-docker gcr.io
+
+      - name: Deploy to Cloud Run
+        env:
+          SOPS_AGE_KEY_FILE: ./keys.txt
+        run: make deploy
