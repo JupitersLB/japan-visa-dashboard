@@ -27,7 +27,11 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      # Step 3: Debug GCloud Authentication
+      # Step 3: Debug Environment Variables
+      - name: Debug Environment Variables
+        run: env | grep -E 'ACTIONS_ID_TOKEN|GOOGLE|CLOUDSDK'
+
+      # Step 4: Debug GCloud Authentication
       - name: Debug GCloud Authentication
         run: |
           echo "Auth List:"
@@ -37,35 +41,40 @@ jobs:
           echo "Projects List:"
           gcloud projects list
 
-      # Step 4: Verify OIDC Token
+      # Step 5: Verify OIDC Token
       - name: Verify OIDC Token
         run: |
           echo "Fetching OIDC token..."
-          TOKEN=$(curl -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-                        "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r .value)
-          echo "OIDC Token: $TOKEN"
-          echo "Decoded Token:"
-          echo "$TOKEN" | base64 -d | jq .
+          export GITHUB_TOKEN=$(curl -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r .value)
+
+          echo "OIDC Token: $GITHUB_TOKEN"
+
+          echo "Decoded Token (Header):"
+          echo $GITHUB_TOKEN | cut -d "." -f1 | base64 -d 2>/dev/null || echo "Failed to decode header"
+
+          echo "Decoded Token (Payload):"
+          echo $GITHUB_TOKEN | cut -d "." -f2 | base64 -d 2>/dev/null || echo "Failed to decode payload"
         env:
           ACTIONS_ID_TOKEN_REQUEST_URL: ${{ steps.authenticate-to-google-cloud.outputs.actions_id_token_request_url }}
           ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ steps.authenticate-to-google-cloud.outputs.actions_id_token_request_token }}
         shell: bash
 
-      # Step 5: Set up Google Cloud SDK
+      # Step 6: Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: japan-visa-predictions
 
-      # Step 6: Install Dependencies
+      # Step 7: Install Dependencies
       - name: Install Dependencies
         run: sudo apt-get update && sudo apt-get install -y docker.io sops
 
-      # Step 7: Export SOPS Private Key
+      # Step 8: Export SOPS Private Key
       - name: Export SOPS Private Key
         run: echo "${{ secrets.CI_AGE_KEY }}" > ~/.age-key
 
-      # Step 8: Deploy to Cloud Run
+      # Step 9: Deploy to Cloud Run
       - name: Deploy to Cloud Run
         env:
           SOPS_AGE_KEY_FILE: ~/.age-key
