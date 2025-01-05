@@ -37,22 +37,30 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Export SOPS Private Key
+      - name: Create SOPS Keys
         run: |
           mkdir -p ~/.sops
-          echo "${{ secrets.CI_AGE_KEY }}" > ~/.sops/age-key
-          chmod 600 ~/.sops/age-key
+          echo "${{ secrets.CI_AGE_KEY }}" > ~/.sops/keys.txt
+          chmod 600 ~/.sops/keys.txt
         env:
-          SOPS_AGE_KEY_FILE: ~/.sops/age-key
+          SOPS_AGE_KEY_FILE: ~/.sops/keys.txt
 
       - name: Validate SOPS Key
         run: |
-          if [ ! -f ~/.sops/age-key ]; then
-            echo "Error: SOPS key file not found"
+          if [ ! -f ~/.sops/keys.txt ]; then
+            echo "Error: SOPS keys file not found"
             exit 1
           fi
+          echo "SOPS keys file exists and is valid"
+
+      - name: Test SOPS Decryption
+        env:
+          SOPS_AGE_KEY_FILE: ~/.sops/keys.txt
+        run: |
+          sops -d secrets/.env.enc > /tmp/.env
+          cat /tmp/.env
 
       - name: Deploy to Cloud Run
         env:
-          SOPS_AGE_KEY_FILE: ~/.sops/age-key
+          SOPS_AGE_KEY_FILE: ~/.sops/keys.txt
         run: make deploy
