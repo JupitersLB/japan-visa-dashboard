@@ -41,25 +41,23 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const filteredData = data.reduce((result: any[], entry: any) => {
-    if (location && entry.location !== location) return result
+  const filteredData = data.filter((entry: ImmigrationResponse) => {
+    if (location && entry.location !== location) return false
     if (application_type && entry.application_type !== application_type)
-      return result
+      return false
     if (
       processing_category &&
       entry.processing_category !== processing_category
     )
-      return result
+      return false
 
     if (from) {
       const entryDate = DateTime.fromISO(entry.date)
-      if (!entryDate.isValid || entryDate < DateTime.fromISO(from))
-        return result
+      if (!entryDate.isValid || entryDate < DateTime.fromISO(from)) return false
     }
 
-    result.push(entry)
-    return result
-  }, [])
+    return true
+  })
 
   return NextResponse.json(filteredData)
 }
