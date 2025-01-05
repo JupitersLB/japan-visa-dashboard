@@ -42,8 +42,11 @@ jobs:
           echo "${{ secrets.CI_AGE_KEY }}" > keys.txt
           export SOPS_AGE_KEY_FILE=./keys.txt
 
-      - name: Authenticate Docker with GCR
-        run: gcloud auth configure-docker gcr.io
+      - name: Prepare Cloud End
+        run: |
+          gcloud --quiet components update
+          gcloud --quiet components install beta
+          gcloud auth configure-docker gcr.io
 
       - name: Deploy to Cloud Run
         env:
