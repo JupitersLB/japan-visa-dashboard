@@ -1,8 +1,10 @@
 keys:
   - &liam age1ur7edttkehphtrmeq6tqm8nummg6eve52yyvnqx7nh9rxq6hjc5q5qxvg9
+  - &ci_token age1mvyc0v80y828d7tpcaccdnddmzlkhz0ru944z82uhnlk4avpte3qyjjqg8
 
 creation_rules:
   - path_regex: 'secrets/*'
     key_groups:
       - age:
           - *liam
+          - *ci_token
