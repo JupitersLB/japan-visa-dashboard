@@ -95,10 +95,8 @@ export const ApplicationPrediction: FC = () => {
     return predictionEngine(data, computedStats)
   }, [data, computedStats])
 
-  const handleFormSubmit = (formData: PredictionFormData) => {
-    calcStats(formData)
-    submit(formData)
-  }
+  const handleFormSubmit = (formData: PredictionFormData) =>
+    Promise.all([calcStats(formData), submit(formData)])
 
   return (
     <div className="flex w-full flex-col items-center justify-center h-full bg-background text-foreground md:p-8">

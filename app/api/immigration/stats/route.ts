@@ -43,47 +43,28 @@ export async function POST(req: NextRequest) {
   const toDate = to || latestEntry?.date
 
   const fromDate = from || DateTime.fromISO(toDate).minus({ years: 1 }).toISO()
+  const toDateObj = DateTime.fromISO(toDate)
+  const fromDateObj = DateTime.fromISO(fromDate)
 
-  if (
-    !DateTime.fromISO(toDate).isValid ||
-    !DateTime.fromISO(fromDate).isValid
-  ) {
+  if (!toDateObj.isValid || !fromDateObj.isValid) {
     return NextResponse.json(
-      { message: 'Invalid date format for "from" or "to".' },
+      { message: 'Invalid date format.' },
       { status: 400 }
     )
   }
 
-  const groupedData = data.reduce(
-    (
-      acc: Record<string, Record<string, ImmigrationResponse[]>>,
-      entry: ImmigrationResponse
-    ) => {
-      const entryDate = DateTime.fromISO(entry.date)
+  const filteredData = data.filter((entry) => {
+    const entryDate = DateTime.fromISO(entry.date)
 
-      if (
-        entry.location === location &&
-        (!application_type || entry.application_type === application_type) &&
-        (!processing_category ||
-          entry.processing_category === processing_category) &&
-        entryDate >= DateTime.fromISO(fromDate) &&
-        entryDate <= DateTime.fromISO(toDate)
-      ) {
-        if (!acc[entry.application_type]) {
-          acc[entry.application_type] = {}
-        }
+    return (
+      entry.location === location &&
+      (!application_type || entry.application_type === application_type) &&
+      (!processing_category ||
+        entry.processing_category === processing_category) &&
+      entryDate >= fromDateObj &&
+      entryDate <= toDateObj
+    )
+  })
 
-        if (!acc[entry.application_type][entry.processing_category]) {
-          acc[entry.application_type][entry.processing_category] = []
-        }
-
-        acc[entry.application_type][entry.processing_category].push(entry)
-      }
-
-      return acc
-    },
-    {} as Record<string, Record<string, ImmigrationResponse[]>>
-  )
-
-  return NextResponse.json(calculateInsights(groupedData))
+  return NextResponse.json(calculateInsights(filteredData))
 }

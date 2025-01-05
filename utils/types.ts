@@ -58,14 +58,8 @@ export type ImmigrationResponse = {
 export type Insight = {
   monthly_average: number
   recent_monthly_change: number | null
-  sorted_monthly_data: {
-    timestamp: number
-    count: number
-    mom_change: number | null
-  }[]
   standard_deviation: number
   weighted_monthly_average: number
-  anomalies: [number, string, number][] // timestamp _ count
 }
 
 export type StatResponse = {
