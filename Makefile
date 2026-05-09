@@ -1,4 +1,4 @@
-.PHONY: build push clean secrets deploy sourcemaps extract-sourcemaps
+.PHONY: help env-smoke deps dev build start lint format push clean secrets deploy sourcemaps extract-sourcemaps check
 
 # Variables
 PROJECT_ID=japan-visa-predictions
@@ -6,9 +6,44 @@ SERVICE_NAME=jp-visa-front
 REGION=us-central1
 IMAGE=gcr.io/$(PROJECT_ID)/$(SERVICE_NAME):latest
 
+help:
+	@printf "Frontend commands:\n"
+	@printf "  env-smoke  Verify frontend toolchain availability.\n"
+	@printf "  deps       Install JavaScript dependencies from yarn.lock.\n"
+	@printf "  dev        Start the Next.js dev server.\n"
+	@printf "  build      Build the production frontend image prerequisites and app.\n"
+	@printf "  start      Start the built Next.js app.\n"
+	@printf "  lint       Run frontend lint checks.\n"
+	@printf "  format     Format frontend files.\n"
+	@printf "  secrets    Decrypt local frontend secrets.\n"
+	@printf "  deploy     Build, push, and deploy the Cloud Run frontend service.\n"
+	@printf "  check      Run env-smoke and lint.\n"
+
+env-smoke:
+	@node --version
+	@yarn --version
+	@gcloud --version | sed -n '1p'
+	@sops --version
+
+deps:
+	yarn install --frozen-lockfile
+
+dev:
+	yarn dev
+
+start:
+	yarn start
+
+lint:
+	yarn lint
+
+format:
+	yarn format
+
+check: env-smoke lint
+
 secrets:
 	sops -d secrets/.env.enc > .env
-	sops -d secrets/immigration_data.enc.json > data/immigration_data.json
 
 extract-sourcemaps:
 	# Create a temporary container from the built image

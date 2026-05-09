@@ -9,10 +9,14 @@ export const categoryOptions = [
 ]
 
 export const locationOptions = [
+  { value: 'chubu_airport', label: 'Chubu Airport' },
   { value: 'fukuoka', label: 'Fukuoka' },
+  { value: 'haneda_airport', label: 'Haneda Airport' },
   { value: 'hiroshima', label: 'Hiroshima' },
+  { value: 'kansai_airport', label: 'Kansai Airport' },
   { value: 'kobe', label: 'Kobe' },
   { value: 'nagoya', label: 'Nagoya' },
+  { value: 'narita_airport', label: 'Narita Airport' },
   { value: 'naha', label: 'Naha' },
   { value: 'osaka', label: 'Osaka' },
   { value: 'sapporo', label: 'Sapporo' },

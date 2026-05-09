@@ -8,6 +8,12 @@ import { Provider as RollbarProvider } from '@rollbar/react'
 import { clientConfig } from '@/utils/rollbar'
 import newrelic from 'newrelic'
 
+const siteUrl = (() => {
+  const configuredUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  if (/^https?:\/\//.test(configuredUrl)) return configuredUrl
+  return `http://${configuredUrl}`
+})()
+
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -19,7 +25,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL as string),
+  metadataBase: new URL(siteUrl),
   title: 'Japan Visa Predictions',
   description:
     'A modern platform providing predictive analytics for visa application processing timelines in Japan. Featuring interactive charts and user-friendly input fields for precise and personalized insights.',
@@ -32,7 +38,7 @@ export const metadata: Metadata = {
     title: 'Japan Visa Predictions',
     description:
       'Predictive analytics for visa application processing timelines in Japan.',
-    url: process.env.NEXT_PUBLIC_BASE_URL,
+    url: siteUrl,
     siteName: 'Japan Visa Predictions',
     locale: 'en_US',
     type: 'website',
@@ -47,16 +53,23 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  if ((newrelic as any).agent.collector.isConnected() === false) {
+  const newrelicAgent = (newrelic as any).agent
+  if (
+    isProduction &&
+    newrelicAgent?.collector?.isConnected &&
+    newrelicAgent.collector.isConnected() === false
+  ) {
     await new Promise((resolve) => {
-      ;(newrelic as any).agent.on('connected', resolve)
+      newrelicAgent.on('connected', resolve)
     })
   }
 
-  const browserTimingHeader = newrelic.getBrowserTimingHeader({
-    hasToRemoveScriptWrapper: true,
-    allowTransactionlessInjection: true,
-  })
+  const browserTimingHeader = isProduction
+    ? newrelic.getBrowserTimingHeader({
+        hasToRemoveScriptWrapper: true,
+        allowTransactionlessInjection: true,
+      })
+    : ''
 
   return (
     <RollbarProvider config={clientConfig}>

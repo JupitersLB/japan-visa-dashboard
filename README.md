@@ -14,6 +14,12 @@ pnpm dev
 bun dev
 ```
 
+For local backend integration, run the FastAPI backend separately and set:
+
+```bash
+NEXT_PUBLIC_BACKEND_BASE_URL=http://127.0.0.1:8000
+```
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
