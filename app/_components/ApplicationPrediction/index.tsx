@@ -13,7 +13,6 @@ import { WaitForLoad } from '../WaitForLoad'
 import { LoadingSkeleton } from './LoadingSkeleton'
 import { DateGraphSkeleton } from './DateGraphSkeleton'
 import {
-  backendBaseUrl,
   BackendPredictionResponse,
   LatestMetadataResponse,
   mapPredictionResponse,
@@ -46,7 +45,7 @@ export const ApplicationPrediction: FC = () => {
     PredictionFormData
   >(({ location, application_type, date }: PredictionFormData) =>
     axios
-      .get<BackendPredictionResponse>(`${backendBaseUrl}/predictions`, {
+      .get<BackendPredictionResponse>('/api/predictions', {
         params: {
           location: location.value,
           application_type: application_type.value,
@@ -60,7 +59,7 @@ export const ApplicationPrediction: FC = () => {
     queryKey: ['immigration stats', 'latest'],
     queryFn: () =>
       axios
-        .get<LatestMetadataResponse>(`${backendBaseUrl}/meta/latest`)
+        .get<LatestMetadataResponse>('/api/meta/latest')
         .then(({ data }) => data),
     select: (data) => data.latest_date,
     refetchOnWindowFocus: false,

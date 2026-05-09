@@ -1,9 +1,9 @@
-name: CI/CD Deployment to Cloud Run
+name: Deploy
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - "v*"
 
 jobs:
   deploy:
@@ -14,41 +14,39 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Install dependencies
+        run: nix develop -c make deps
+
+      - name: Run frontend checks
+        run: nix develop -c make check
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
           create_credentials_file: true
 
       - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+        uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: japan-visa-predictions
 
-      - name: Set up Docker
-        uses: docker/setup-docker-action@v2
+      - name: Configure Docker for Google Container Registry
+        run: gcloud auth configure-docker gcr.io --quiet
 
-      - name: Install sops
-        uses: nhedger/setup-sops@v2
+      - name: Set up SOPS Age key
+        uses: ./.github/actions/setup-sops-age
         with:
-          version: 'latest'
+          age-key: ${{ secrets.CI_AGE_KEY }}
 
-      - name: Generate SOPS Keys
-        run: |
-          echo "${{ secrets.CI_AGE_KEY }}" > keys.txt
-          export SOPS_AGE_KEY_FILE=./keys.txt
-
-      - name: Prepare Cloud End
-        run: |
-          gcloud --quiet components update
-          gcloud --quiet components install beta
-          gcloud auth configure-docker gcr.io
-
-      - name: Deploy to Cloud Run
+      - name: Deploy public Cloud Run service
         env:
           SOPS_AGE_KEY_FILE: ./keys.txt
-        run: make deploy
+        run: nix develop -c make deploy IMAGE_TAG=${{ github.ref_name }}

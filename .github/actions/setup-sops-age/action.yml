@@ -1,0 +1,24 @@
+name: Setup SOPS Age Key
+description: Install SOPS and write the CI Age private key for decrypting secrets.
+
+inputs:
+  age-key:
+    description: Age private key used by SOPS.
+    required: true
+  key-file:
+    description: Path to write the Age private key.
+    required: false
+    default: keys.txt
+
+runs:
+  using: composite
+  steps:
+    - name: Install sops
+      uses: nhedger/setup-sops@v2
+      with:
+        version: latest
+
+    - name: Configure SOPS age key
+      shell: bash
+      run: |
+        printf '%s' "${{ inputs.age-key }}" > "${{ inputs.key-file }}"

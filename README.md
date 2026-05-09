@@ -1,42 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Japan Visa Dashboard
 
-## Getting Started
+Next.js frontend for the Japan visa prediction dashboard.
 
-First, run the development server:
+The browser talks to same-origin Next API routes under `/api/*`. Those routes proxy to the FastAPI backend. Locally this defaults to `http://127.0.0.1:8000`; in Cloud Run the frontend service uses its service identity to call the private backend.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The proxy applies bounded in-memory caching and per-client rate limiting before it calls the backend. This is intentionally lightweight: it reduces accidental or casual abuse without adding another paid service.
 
-For local backend integration, run the FastAPI backend separately and set:
+## Commands
+
+Run commands through Nix:
 
 ```bash
-NEXT_PUBLIC_BACKEND_BASE_URL=http://127.0.0.1:8000
+nix develop
+make help
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Common commands:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+make deps
+make dev
+make check
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Local Backend
 
-## Learn More
+Run the backend separately, then start the frontend:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+BACKEND_BASE_URL=http://127.0.0.1:8000 make dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## CI/CD
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Pushes and pull requests run frontend checks.
 
-## Deploy on Vercel
+Deployments run only from version tags matching `v*`. The deploy workflow installs dependencies, runs checks, authenticates to Google Cloud, decrypts deployment secrets with SOPS, builds the Docker image using the tag name, pushes it, and deploys it to Cloud Run.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Proxy Controls
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Optional runtime settings:
+
+- `FRONTEND_PROXY_RATE_LIMIT`: requests per client per route window. Default: `60`.
+- `FRONTEND_PROXY_RATE_LIMIT_WINDOW_SECONDS`: rate limit window. Default: `60`.
+- `META_LATEST_PROXY_CACHE_SECONDS`: cache TTL for `/api/meta/latest`, in seconds. Default: `604800` / one week.
+- `PREDICTIONS_PROXY_CACHE_SECONDS`: cache TTL for `/api/predictions`, in seconds. Default: `604800` / one week.
+- `BACKEND_PROXY_CACHE_MAX_ENTRIES`: maximum in-memory backend response cache entries per instance. Default: `500`.
+
+The backend data updates monthly, so one-week cache defaults keep repeat queries cheap while still limiting stale responses after a fresh import.
