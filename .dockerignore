@@ -1,4 +1,10 @@
 node_modules
 npm-debug.log
 .DS_Store
+.env
 .next/cache
+.env.docker
+.env.local
+local-sourcemaps
+newrelic_agent.log
+secrets

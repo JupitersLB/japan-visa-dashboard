@@ -1,11 +1,6 @@
 import { DateTime } from 'luxon'
 import { PredictedData } from './types'
 
-const defaultBackendBaseUrl = 'http://127.0.0.1:8000'
-
-export const backendBaseUrl =
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL || defaultBackendBaseUrl
-
 export type LatestMetadataResponse = {
   latest_month: string
   latest_date: string

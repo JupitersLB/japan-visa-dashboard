@@ -1,8 +1,9 @@
 # Local environment
 .env
 .env.*
-!.env.example
 !.env.enc
+!.env.local.enc
+
 .direnv/
 
 # JavaScript dependencies and build output

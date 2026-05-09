@@ -1,23 +1,30 @@
-.PHONY: help env-smoke deps dev build start lint format push clean secrets deploy sourcemaps extract-sourcemaps check
+.PHONY: help env-smoke deps dev app-build image-build start lint format image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check
 
-# Variables
-PROJECT_ID=japan-visa-predictions
-SERVICE_NAME=jp-visa-front
-REGION=us-central1
-IMAGE=gcr.io/$(PROJECT_ID)/$(SERVICE_NAME):latest
+PROJECT_ID ?= japan-visa-predictions
+SERVICE_NAME ?= jp-visa-front
+REGION ?= us-central1
+IMAGE_TAG ?= latest
+IMAGE_REPOSITORY ?= gcr.io/$(PROJECT_ID)/$(SERVICE_NAME)
+IMAGE ?= $(IMAGE_REPOSITORY):$(IMAGE_TAG)
+MAX_INSTANCES ?= 2
+MEMORY ?= 512Mi
+CONCURRENCY ?= 20
 
 help:
 	@printf "Frontend commands:\n"
 	@printf "  env-smoke  Verify frontend toolchain availability.\n"
 	@printf "  deps       Install JavaScript dependencies from yarn.lock.\n"
 	@printf "  dev        Start the Next.js dev server.\n"
-	@printf "  build      Build the production frontend image prerequisites and app.\n"
+	@printf "  app-build  Build the Next.js application.\n"
+	@printf "  image-build Build the frontend Docker image locally.\n"
+	@printf "  image-push Push the frontend Docker image.\n"
 	@printf "  start      Start the built Next.js app.\n"
 	@printf "  lint       Run frontend lint checks.\n"
 	@printf "  format     Format frontend files.\n"
 	@printf "  secrets    Decrypt local frontend secrets.\n"
+	@printf "  service-deploy Deploy the public Cloud Run frontend service.\n"
 	@printf "  deploy     Build, push, and deploy the Cloud Run frontend service.\n"
-	@printf "  check      Run env-smoke and lint.\n"
+	@printf "  check      Run env-smoke, lint, and production app build.\n"
 
 env-smoke:
 	@node --version
@@ -40,7 +47,10 @@ lint:
 format:
 	yarn format
 
-check: env-smoke lint
+app-build:
+	yarn build
+
+check: env-smoke lint app-build
 
 secrets:
 	sops -d secrets/.env.enc > .env
@@ -58,21 +68,38 @@ sourcemaps: extract-sourcemaps
 	# Clean up only after successfully sending sourcemaps
 	rm -rf ./local-sourcemaps
 
-build: secrets
-	cp .env .env.docker
-	docker build -t $(IMAGE) .
+image-build: secrets
+	DOCKER_BUILDKIT=1 docker build --secret id=frontend_env,src=.env -t $(IMAGE) .
 
-push: build sourcemaps
+build: image-build
+
+image-push: image-build sourcemaps
 	docker push $(IMAGE)
 
-deploy: push
-	# Deploy the Docker image to Google Cloud Run
-	gcloud beta run deploy $(SERVICE_NAME) --image $(IMAGE) \
-		--platform managed --project $(PROJECT_ID) --region $(REGION) \
-		--set-env-vars=OPTIMIZE_MEMORY=true,NODE_OPTIONS="--max-old-space-size=1024" \
-		--max-instances 2 --min-instances 0 --memory 512M --concurrency 20 --allow-unauthenticated
+push: image-push
 
-	# Update traffic to the latest revision
+service-deploy:
+	@set -a; [ ! -f .env ] || . ./.env; set +a; \
+	test -n "$$BACKEND_BASE_URL" || (printf "BACKEND_BASE_URL is required\n" && exit 1); \
+	env_vars="ENVIRONMENT=production,OPTIMIZE_MEMORY=true,NODE_OPTIONS=--max-old-space-size=1024,BACKEND_BASE_URL=$$BACKEND_BASE_URL,BACKEND_AUTH_MODE=google"; \
+	if [ -n "$$NEXT_PUBLIC_BASE_URL" ]; then env_vars="$$env_vars,NEXT_PUBLIC_BASE_URL=$$NEXT_PUBLIC_BASE_URL"; fi; \
+	if [ -n "$$NEXT_PUBLIC_GA_ID" ]; then env_vars="$$env_vars,NEXT_PUBLIC_GA_ID=$$NEXT_PUBLIC_GA_ID"; fi; \
+	if [ -n "$$NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN" ]; then env_vars="$$env_vars,NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN=$$NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN"; fi; \
+	if [ -n "$$ROLLBAR_SERVER_TOKEN" ]; then env_vars="$$env_vars,ROLLBAR_SERVER_TOKEN=$$ROLLBAR_SERVER_TOKEN"; fi; \
+	if [ -n "$$NEW_RELIC_APP_NAME" ]; then env_vars="$$env_vars,NEW_RELIC_APP_NAME=$$NEW_RELIC_APP_NAME"; fi; \
+	if [ -n "$$NEW_RELIC_LICENSE_KEY" ]; then env_vars="$$env_vars,NEW_RELIC_LICENSE_KEY=$$NEW_RELIC_LICENSE_KEY"; fi; \
+	gcloud run deploy $(SERVICE_NAME) \
+		--project $(PROJECT_ID) \
+		--region $(REGION) \
+		--image $(IMAGE) \
+		--platform managed \
+		--allow-unauthenticated \
+		--memory $(MEMORY) \
+		--concurrency $(CONCURRENCY) \
+		--max-instances $(MAX_INSTANCES) \
+		--update-env-vars "$$env_vars"
+
+deploy: image-push service-deploy
 	gcloud run services update-traffic $(SERVICE_NAME) --to-latest --region $(REGION) \
 		--project $(PROJECT_ID)
 

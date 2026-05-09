@@ -9,7 +9,8 @@ import { clientConfig } from '@/utils/rollbar'
 import newrelic from 'newrelic'
 
 const siteUrl = (() => {
-  const configuredUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
   if (/^https?:\/\//.test(configuredUrl)) return configuredUrl
   return `http://${configuredUrl}`
 })()
@@ -47,6 +48,9 @@ export const metadata: Metadata = {
 
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID
 const isProduction = process.env.NODE_ENV === 'production'
+const isNewRelicEnabled =
+  isProduction &&
+  Boolean(process.env.NEW_RELIC_LICENSE_KEY && process.env.NEW_RELIC_APP_NAME)
 
 export default async function RootLayout({
   children,
@@ -55,7 +59,7 @@ export default async function RootLayout({
 }>) {
   const newrelicAgent = (newrelic as any).agent
   if (
-    isProduction &&
+    isNewRelicEnabled &&
     newrelicAgent?.collector?.isConnected &&
     newrelicAgent.collector.isConnected() === false
   ) {
@@ -64,7 +68,7 @@ export default async function RootLayout({
     })
   }
 
-  const browserTimingHeader = isProduction
+  const browserTimingHeader = isNewRelicEnabled
     ? newrelic.getBrowserTimingHeader({
         hasToRemoveScriptWrapper: true,
         allowTransactionlessInjection: true,
@@ -91,7 +95,7 @@ export default async function RootLayout({
             isProduction={isProduction}
           />
           <ClientLayout>{children}</ClientLayout>
-          {isProduction && (
+          {isNewRelicEnabled && (
             <Script
               id="nr-browser-agent"
               strategy="beforeInteractive"
