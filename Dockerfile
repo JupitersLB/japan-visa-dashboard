@@ -22,7 +22,6 @@ COPY --from=builder /build/package.json /build/yarn.lock ./
 RUN yarn install --frozen-lockfile --production && yarn cache clean && rm -rf /root/.npm
 
 # Copy the built application and necessary files
-COPY --from=builder /build/data data
 COPY --from=builder /build/utils utils
 COPY --from=builder /build/public public
 COPY --from=builder /build/.next .next

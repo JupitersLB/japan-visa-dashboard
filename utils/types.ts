@@ -1,20 +1,14 @@
 import { DateTime } from 'luxon'
 
-export type ProcessingCategory =
-  | 'approved'
-  | 'newly_accepted'
-  | 'not_approved'
-  | 'other_processed'
-  | 'pending'
-  | 'previously_accepted'
-  | 'total_accepted'
-  | 'total_processed'
-
 export type ApplicationLocation =
+  | 'chubu_airport'
   | 'fukuoka'
+  | 'haneda_airport'
   | 'hiroshima'
+  | 'kansai_airport'
   | 'kobe'
   | 'nagoya'
+  | 'narita_airport'
   | 'naha'
   | 'osaka'
   | 'sapporo'
@@ -34,38 +28,10 @@ export type ApplicationType =
 
 export type SelectOption<T> = { value: T; label: string }
 
-export type FilterValues = {
-  processing_category?: SelectOption<ProcessingCategory>
-  location: SelectOption<ApplicationLocation>
-  application_type: SelectOption<ApplicationType>
-  date?: string
-}
-
 export type PredictionFormData = {
   location: SelectOption<ApplicationLocation>
   application_type: SelectOption<ApplicationType>
   date: DateTime
-}
-
-export type ImmigrationResponse = {
-  processing_category: ProcessingCategory
-  application_type: ApplicationType
-  location: ApplicationLocation
-  date: string
-  count: number
-}
-
-export type Insight = {
-  monthly_average: number
-  recent_monthly_change: number | null
-  standard_deviation: number
-  weighted_monthly_average: number
-}
-
-export type StatResponse = {
-  [K in ApplicationType]: {
-    [P in ProcessingCategory]: Insight
-  }
 }
 
 export interface IBurnDownHash {

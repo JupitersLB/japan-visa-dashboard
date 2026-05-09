@@ -2,22 +2,22 @@
 
 import React, { FC, useMemo } from 'react'
 import { DateTime } from 'luxon'
-import {
-  ApplicationType,
-  ImmigrationResponse,
-  PredictionFormData,
-  StatResponse,
-} from '@/utils/types'
+import { PredictionFormData, PredictedData } from '@/utils/types'
 import axios, { AxiosError } from 'axios'
 import { useJBMutation, useJBQuery } from '../queryWrappers'
 import { BurnDownChart } from './BurnDownChart'
-import { predictionEngine } from '@/utils/predictionEngine'
 import { PredictionForm } from './PredictionForm'
 import { PredictionDisplay } from './PredictionDate'
 import { isPresent } from '@/utils/isPresent'
 import { WaitForLoad } from '../WaitForLoad'
 import { LoadingSkeleton } from './LoadingSkeleton'
 import { DateGraphSkeleton } from './DateGraphSkeleton'
+import {
+  backendBaseUrl,
+  BackendPredictionResponse,
+  LatestMetadataResponse,
+  mapPredictionResponse,
+} from '@/utils/backendApi'
 
 const initialValues: PredictionFormData = {
   location: { value: 'tokyo', label: 'Tokyo' },
@@ -30,44 +30,39 @@ const initialValues: PredictionFormData = {
 
 export const ApplicationPrediction: FC = () => {
   const {
-    mutateAsync: calcStats,
-    data: computedStats,
-    isPending: isPendingStats,
+    mutateAsync: fetchPrediction,
+    data: prediction,
+    isPending: isPendingPredictions,
   } = useJBMutation<
-    StatResponse[ApplicationType],
+    Pick<
+      PredictedData,
+      | 'burnDownData'
+      | 'predictedZeroMonthAverage'
+      | 'predictedZeroMonthWeighted'
+      | 'monthlyAverage'
+      | 'monthlyWeighted'
+    >,
     AxiosError,
     PredictionFormData
-  >(({ location, application_type }: PredictionFormData) =>
+  >(({ location, application_type, date }: PredictionFormData) =>
     axios
-      .post(`/api/immigration/stats`, {
-        location: location.value,
-        application_type: application_type.value,
-      })
-      .then(({ data }) => data[application_type.value])
-  )
-
-  const {
-    mutateAsync: submit,
-    data = [],
-    isPending: isPendingPredictions,
-  } = useJBMutation<ImmigrationResponse[], AxiosError, PredictionFormData>(
-    ({ location, application_type, date }: PredictionFormData) =>
-      axios
-        .post(`/api/immigration`, {
+      .get<BackendPredictionResponse>(`${backendBaseUrl}/predictions`, {
+        params: {
           location: location.value,
           application_type: application_type.value,
-          from: date.toISO(),
-        })
-        .then(({ data }) => data)
+          submitted_from: date.toISO(),
+        },
+      })
+      .then(({ data }) => mapPredictionResponse(data))
   )
 
   const { data: latestDateTimeString, isLoading } = useJBQuery({
     queryKey: ['immigration stats', 'latest'],
     queryFn: () =>
       axios
-        .get<ImmigrationResponse>('/api/immigration/latest')
+        .get<LatestMetadataResponse>(`${backendBaseUrl}/meta/latest`)
         .then(({ data }) => data),
-    select: (data) => data.date,
+    select: (data) => data.latest_date,
     refetchOnWindowFocus: false,
   })
 
@@ -79,24 +74,8 @@ export const ApplicationPrediction: FC = () => {
     [latestDateTimeString]
   )
 
-  const {
-    burnDownData,
-    predictedZeroMonthAverage,
-    predictedZeroMonthWeighted,
-  } = useMemo(() => {
-    if (!isPresent(data) || !isPresent(computedStats)) {
-      return {
-        burnDownData: [],
-        predictedZeroMonthAverage: null,
-        predictedZeroMonthWeighted: null,
-      }
-    }
-
-    return predictionEngine(data, computedStats)
-  }, [data, computedStats])
-
   const handleFormSubmit = (formData: PredictionFormData) =>
-    Promise.all([calcStats(formData), submit(formData)])
+    fetchPrediction(formData)
 
   return (
     <div className="flex w-full flex-col items-center justify-center h-full bg-background text-foreground md:p-8">
@@ -110,19 +89,23 @@ export const ApplicationPrediction: FC = () => {
           </div>
 
           <WaitForLoad
-            isLoading={isPendingPredictions || isPendingStats}
+            isLoading={isPendingPredictions}
             loadingComponent={<DateGraphSkeleton />}
           >
             <div className="col-span-2 flex flex-col gap-4">
               <div className="bg-neutral p-6 rounded-lg">
                 <PredictionDisplay
-                  averagePrediction={predictedZeroMonthAverage}
-                  weightedPrediction={predictedZeroMonthWeighted}
+                  averagePrediction={
+                    prediction?.predictedZeroMonthAverage || null
+                  }
+                  weightedPrediction={
+                    prediction?.predictedZeroMonthWeighted || null
+                  }
                 />
               </div>
 
               <div className="bg-neutral p-6 rounded-lg h-96">
-                <BurnDownChart burnDownData={burnDownData} />
+                <BurnDownChart burnDownData={prediction?.burnDownData || []} />
               </div>
             </div>
           </WaitForLoad>
