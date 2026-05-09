@@ -2,7 +2,7 @@
 
 Next.js frontend for the Japan visa prediction dashboard.
 
-The browser talks to same-origin Next API routes under `/api/*`. Those routes proxy to the FastAPI backend. Locally this defaults to `http://127.0.0.1:8000`; in Cloud Run the frontend service uses its service identity to call the private backend.
+The browser talks to same-origin Next API routes under `/api/*`. Those routes proxy to the FastAPI backend. Local development defaults to `http://127.0.0.1:8000`; production Cloud Run deployments set `BACKEND_BASE_URL` from the encrypted deployment environment and use the frontend service identity to call the private backend.
 
 The proxy applies bounded in-memory caching and per-client rate limiting before it calls the backend. This is intentionally lightweight: it reduces accidental or casual abuse without adding another paid service.
 
@@ -31,11 +31,15 @@ Run the backend separately, then start the frontend:
 BACKEND_BASE_URL=http://127.0.0.1:8000 make dev
 ```
 
+If `BACKEND_BASE_URL` is omitted outside production, the proxy uses the local backend default. In Cloud Run, or when `ENVIRONMENT=production`, the proxy fails fast when `BACKEND_BASE_URL` is missing.
+
 ## CI/CD
 
 Pushes and pull requests run frontend checks.
 
 Deployments run only from version tags matching `v*`. The deploy workflow installs dependencies, runs checks, authenticates to Google Cloud, decrypts deployment secrets with SOPS, builds the Docker image using the tag name, pushes it, and deploys it to Cloud Run.
+
+`make service-deploy` reads `BACKEND_BASE_URL` from the decrypted `.env` file and writes it to the frontend Cloud Run service alongside `ENVIRONMENT=production` and `BACKEND_AUTH_MODE=google`.
 
 ## Proxy Controls
 

@@ -80,6 +80,8 @@ image-push: image-build sourcemaps
 push: image-push
 
 service-deploy:
+	@set -a; [ ! -f .env ] || . ./.env; set +a; \
+	test -n "$$BACKEND_BASE_URL" || (printf "BACKEND_BASE_URL is required\n" && exit 1); \
 	gcloud run deploy $(SERVICE_NAME) \
 		--project $(PROJECT_ID) \
 		--region $(REGION) \
@@ -89,7 +91,7 @@ service-deploy:
 		--memory $(MEMORY) \
 		--concurrency $(CONCURRENCY) \
 		--max-instances $(MAX_INSTANCES) \
-		--update-env-vars OPTIMIZE_MEMORY=true,NODE_OPTIONS="--max-old-space-size=1024"
+		--update-env-vars ENVIRONMENT=production,OPTIMIZE_MEMORY=true,NODE_OPTIONS="--max-old-space-size=1024",BACKEND_BASE_URL="$$BACKEND_BASE_URL",BACKEND_AUTH_MODE=google
 
 deploy: image-push service-deploy
 	gcloud run services update-traffic $(SERVICE_NAME) --to-latest --region $(REGION) \

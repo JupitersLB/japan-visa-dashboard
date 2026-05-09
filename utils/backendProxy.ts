@@ -34,10 +34,24 @@ export class BackendProxyError extends Error {
   }
 }
 
-const getBackendBaseUrl = () =>
-  process.env.BACKEND_BASE_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
-  defaultBackendBaseUrl
+const isProductionRuntime = () =>
+  process.env.ENVIRONMENT === 'production' || Boolean(process.env.K_SERVICE)
+
+const getBackendBaseUrl = () => {
+  const configuredBackendBaseUrl = process.env.BACKEND_BASE_URL
+
+  if (configuredBackendBaseUrl) return configuredBackendBaseUrl
+
+  if (isProductionRuntime()) {
+    throw new BackendProxyError(500, {
+      detail: {
+        code: 'backend_base_url_missing',
+      },
+    })
+  }
+
+  return defaultBackendBaseUrl
+}
 
 const usesGoogleIdentity = () =>
   process.env.BACKEND_AUTH_MODE === 'google' ||
