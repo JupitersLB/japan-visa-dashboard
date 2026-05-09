@@ -69,8 +69,7 @@ sourcemaps: extract-sourcemaps
 	rm -rf ./local-sourcemaps
 
 image-build: secrets
-	cp .env .env.docker
-	docker build -t $(IMAGE) .
+	DOCKER_BUILDKIT=1 docker build --secret id=frontend_env,src=.env -t $(IMAGE) .
 
 build: image-build
 
@@ -82,6 +81,13 @@ push: image-push
 service-deploy:
 	@set -a; [ ! -f .env ] || . ./.env; set +a; \
 	test -n "$$BACKEND_BASE_URL" || (printf "BACKEND_BASE_URL is required\n" && exit 1); \
+	env_vars="ENVIRONMENT=production,OPTIMIZE_MEMORY=true,NODE_OPTIONS=--max-old-space-size=1024,BACKEND_BASE_URL=$$BACKEND_BASE_URL,BACKEND_AUTH_MODE=google"; \
+	if [ -n "$$NEXT_PUBLIC_BASE_URL" ]; then env_vars="$$env_vars,NEXT_PUBLIC_BASE_URL=$$NEXT_PUBLIC_BASE_URL"; fi; \
+	if [ -n "$$NEXT_PUBLIC_GA_ID" ]; then env_vars="$$env_vars,NEXT_PUBLIC_GA_ID=$$NEXT_PUBLIC_GA_ID"; fi; \
+	if [ -n "$$NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN" ]; then env_vars="$$env_vars,NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN=$$NEXT_PUBLIC_ROLLBAR_CLIENT_TOKEN"; fi; \
+	if [ -n "$$ROLLBAR_SERVER_TOKEN" ]; then env_vars="$$env_vars,ROLLBAR_SERVER_TOKEN=$$ROLLBAR_SERVER_TOKEN"; fi; \
+	if [ -n "$$NEW_RELIC_APP_NAME" ]; then env_vars="$$env_vars,NEW_RELIC_APP_NAME=$$NEW_RELIC_APP_NAME"; fi; \
+	if [ -n "$$NEW_RELIC_LICENSE_KEY" ]; then env_vars="$$env_vars,NEW_RELIC_LICENSE_KEY=$$NEW_RELIC_LICENSE_KEY"; fi; \
 	gcloud run deploy $(SERVICE_NAME) \
 		--project $(PROJECT_ID) \
 		--region $(REGION) \
@@ -91,7 +97,7 @@ service-deploy:
 		--memory $(MEMORY) \
 		--concurrency $(CONCURRENCY) \
 		--max-instances $(MAX_INSTANCES) \
-		--update-env-vars ENVIRONMENT=production,OPTIMIZE_MEMORY=true,NODE_OPTIONS="--max-old-space-size=1024",BACKEND_BASE_URL="$$BACKEND_BASE_URL",BACKEND_AUTH_MODE=google
+		--update-env-vars "$$env_vars"
 
 deploy: image-push service-deploy
 	gcloud run services update-traffic $(SERVICE_NAME) --to-latest --region $(REGION) \

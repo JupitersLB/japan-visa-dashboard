@@ -41,6 +41,8 @@ Deployments run only from version tags matching `v*`. The deploy workflow instal
 
 `make service-deploy` reads `BACKEND_BASE_URL` from the decrypted `.env` file and writes it to the frontend Cloud Run service alongside `ENVIRONMENT=production` and `BACKEND_AUTH_MODE=google`.
 
+`make image-build` also runs `make secrets`, but passes the decrypted `.env` into Docker as a BuildKit secret for `next build`. The file is ignored by the Docker build context and is not copied into the runtime image. Production-only server values are set as Cloud Run runtime environment variables during `make service-deploy`.
+
 ## Proxy Controls
 
 Optional runtime settings:

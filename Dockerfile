@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
@@ -7,9 +9,9 @@ COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 COPY . .
-COPY .env.docker .env
 
-RUN yarn build && rm -rf .next/cache
+RUN --mount=type=secret,id=frontend_env,target=/build/.env \
+    yarn build && rm -rf .next/cache
 
 # Stage 2: Production-ready Image
 FROM node:20-alpine AS runner
@@ -25,7 +27,6 @@ RUN yarn install --frozen-lockfile --production && yarn cache clean && rm -rf /r
 COPY --from=builder /build/utils utils
 COPY --from=builder /build/public public
 COPY --from=builder /build/.next .next
-COPY --from=builder /build/.env .env
 COPY --from=builder /build/next.config.ts next.config.ts
 COPY --from=builder /build/newrelic.js newrelic.js
 
