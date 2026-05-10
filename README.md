@@ -41,6 +41,8 @@ Pushes and pull requests run frontend checks.
 
 Deployments run only from version tags matching `v*`. The deploy workflow installs dependencies, runs checks, authenticates to Google Cloud, decrypts deployment secrets with SOPS, builds the Docker image using the tag name, pushes it, and deploys it to Cloud Run.
 
+Release tags are managed from `VERSION`. Use `make hotfix` for a patch release and `make release` for a minor release. Both targets bump `VERSION`, sync `package.json`, update `CHANGELOG.md`, create an annotated tag, and push the branch with tags.
+
 `make service-deploy` reads `BACKEND_BASE_URL` from the decrypted `.env` file and writes it to the frontend Cloud Run service alongside `ENVIRONMENT=production` and `BACKEND_AUTH_MODE=google`.
 
 `make image-build` also runs `make secrets`, but passes the decrypted `.env` into Docker as a BuildKit secret for `next build`. The file is ignored by the Docker build context and is not copied into the runtime image. Production-only server values are set as Cloud Run runtime environment variables during `make service-deploy`.
