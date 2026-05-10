@@ -94,20 +94,16 @@ const timeoutBody = (code: string) => ({
   },
 })
 
-const fetchWithTimeout = async (
-  input: URL | RequestInfo,
-  init: RequestInit,
+const withTimeout = async <T>(
   timeoutMs: number,
-  timeoutCode: string
+  timeoutCode: string,
+  operation: (signal: AbortSignal) => Promise<T>
 ) => {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
-    return await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    })
+    return await operation(controller.signal)
   } catch (error) {
     if (controller.signal.aborted) {
       throw new BackendProxyError(504, timeoutBody(timeoutCode))
@@ -155,27 +151,30 @@ const getIdentityToken = async () => {
   const url = new URL(metadataIdentityUrl)
   url.searchParams.set('audience', getBackendAudience())
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      headers: {
-        'Metadata-Flavor': 'Google',
-      },
-      cache: 'no-store',
-    },
+  const token = await withTimeout(
     identityTokenTimeoutMs,
-    'backend_identity_token_timeout'
+    'backend_identity_token_timeout',
+    async (signal) => {
+      const response = await fetch(url, {
+        headers: {
+          'Metadata-Flavor': 'Google',
+        },
+        cache: 'no-store',
+        signal,
+      })
+
+      if (!response.ok) {
+        throw new BackendProxyError(502, {
+          detail: {
+            code: 'backend_identity_token_unavailable',
+          },
+        })
+      }
+
+      return response.text()
+    }
   )
 
-  if (!response.ok) {
-    throw new BackendProxyError(502, {
-      detail: {
-        code: 'backend_identity_token_unavailable',
-      },
-    })
-  }
-
-  const token = await response.text()
   cachedIdentityToken = {
     token,
     expiresAt: now + tokenCacheTtlMs,
@@ -218,18 +217,23 @@ export const fetchBackendJson = async <T>(
     headers.set('Authorization', `Bearer ${await getIdentityToken()}`)
   }
 
-  const response = await fetchWithTimeout(
-    url,
-    {
-      ...init,
-      headers,
-      cache: 'no-store',
-    },
+  const { response, body } = await withTimeout(
     backendProxyTimeoutMs,
-    'backend_proxy_timeout'
-  )
+    'backend_proxy_timeout',
+    async (signal) => {
+      const response = await fetch(url, {
+        ...init,
+        headers,
+        cache: 'no-store',
+        signal,
+      })
 
-  const body = await readJsonBody(response)
+      return {
+        response,
+        body: await readJsonBody(response),
+      }
+    }
+  )
 
   if (!response.ok) {
     throw new BackendProxyError(response.status, body)
