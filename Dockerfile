@@ -5,13 +5,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /build
 
-ARG ROLLBAR_CODE_VERSION
-ENV NEXT_PUBLIC_ROLLBAR_CODE_VERSION=$ROLLBAR_CODE_VERSION
-
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
 COPY . .
+
+ARG ROLLBAR_CODE_VERSION
+ENV NEXT_PUBLIC_ROLLBAR_CODE_VERSION=$ROLLBAR_CODE_VERSION
 
 RUN --mount=type=secret,id=frontend_env,target=/build/.env \
     yarn build && rm -rf .next/cache

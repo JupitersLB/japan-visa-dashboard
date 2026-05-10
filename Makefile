@@ -110,7 +110,7 @@ extract-sourcemaps:
 	docker cp "$$container_id":/sourcemaps/static ./local-sourcemaps/static
 
 sourcemaps: extract-sourcemaps
-	ROLLBAR_CODE_VERSION="$(ROLLBAR_CODE_VERSION)" ./upload-sourcemaps.sh --source-root ./local-sourcemaps/static
+	ROLLBAR_CODE_VERSION="$(ROLLBAR_CODE_VERSION)" node scripts/upload-sourcemaps.mjs --source-root ./local-sourcemaps/static
 	# Clean up only after successfully sending sourcemaps
 	rm -rf ./local-sourcemaps
 
