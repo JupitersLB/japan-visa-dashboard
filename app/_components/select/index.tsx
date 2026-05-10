@@ -1,12 +1,30 @@
 'use client'
 
-import React, { FC } from 'react'
+import React from 'react'
 import dynamic from 'next/dynamic'
-import { StylesConfig } from 'react-select'
+import type ReactSelect from 'react-select'
+import type {
+  GroupBase,
+  OnChangeValue,
+  Props as SelectProps,
+  StylesConfig,
+} from 'react-select'
+import type { SelectOption } from '@/utils/types'
 
-const Select = dynamic(() => import('react-select'), { ssr: false })
+type JBSelectOption = SelectOption<string>
 
-const customStyles: StylesConfig = {
+const Select = dynamic(() => import('react-select'), { ssr: false }) as <
+  Option,
+  IsMulti extends boolean = false,
+  Group extends GroupBase<Option> = GroupBase<Option>,
+>(
+  props: SelectProps<Option, IsMulti, Group>
+) => ReturnType<typeof ReactSelect<Option, IsMulti, Group>>
+
+const getCustomStyles = <
+  TOption extends JBSelectOption,
+  TIsMulti extends boolean,
+>(): StylesConfig<TOption, TIsMulti> => ({
   control: (styles, { isFocused }) => ({
     ...styles,
     padding: '0.5rem 0.75rem',
@@ -75,23 +93,37 @@ const customStyles: StylesConfig = {
       fill: isFocused ? 'var(--primary-dark)' : 'var(--secondary)',
     },
   }),
+})
+
+type JBSelectProps<
+  TOption extends JBSelectOption,
+  TIsMulti extends boolean = false,
+> = {
+  name?: string
+  options: readonly TOption[]
+  isMulti?: TIsMulti
+  value?: OnChangeValue<TOption, TIsMulti>
+  onChange?: (value: OnChangeValue<TOption, TIsMulti>) => void
 }
 
-export const JBSelect: FC<{
-  name?: string
-  options: { value: string; label: string }[]
-  isMulti?: boolean
-  value?: any
-  onChange?: (value: any) => void
-}> = ({ name, options, isMulti = false, value, onChange }) => {
+export const JBSelect = <
+  TOption extends JBSelectOption,
+  TIsMulti extends boolean = false,
+>({
+  name,
+  options,
+  isMulti,
+  value,
+  onChange,
+}: JBSelectProps<TOption, TIsMulti>) => {
   return (
-    <Select
+    <Select<TOption, TIsMulti>
       name={name}
       options={options}
       isMulti={isMulti}
       value={value}
       onChange={onChange}
-      styles={customStyles}
+      styles={getCustomStyles<TOption, TIsMulti>()}
       classNamePrefix="react-select"
     />
   )

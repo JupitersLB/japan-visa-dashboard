@@ -2,7 +2,7 @@ node_modules
 npm-debug.log
 .DS_Store
 .env
-.next/cache
+.next
 .env.docker
 .env.local
 local-sourcemaps

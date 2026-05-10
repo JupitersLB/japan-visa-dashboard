@@ -37,21 +37,31 @@ export const PredictionForm: FC<{
       }
       className="p-4 w-full rounded-lg flex flex-col gap-4 border border-secondary"
     >
-      <FieldWrapper name="location" label="Location">
+      <FieldWrapper<PredictionFormData['location']>
+        name="location"
+        label="Location"
+      >
         {({ value, onChange }) => (
           <JBSelect
             options={locationOptions}
             value={value}
-            onChange={onChange}
+            onChange={(selectedValue) => {
+              if (selectedValue) onChange(selectedValue)
+            }}
           />
         )}
       </FieldWrapper>
-      <FieldWrapper name="application_type" label="Application Type">
+      <FieldWrapper<PredictionFormData['application_type']>
+        name="application_type"
+        label="Application Type"
+      >
         {({ value, onChange }) => (
           <JBSelect
             options={applicationTypeOptions}
             value={value}
-            onChange={onChange}
+            onChange={(selectedValue) => {
+              if (selectedValue) onChange(selectedValue)
+            }}
           />
         )}
       </FieldWrapper>

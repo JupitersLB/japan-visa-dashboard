@@ -9,7 +9,7 @@ import type {
   LegendComponentOption,
   DatasetComponentOption,
 } from 'echarts'
-import React, { useRef, FC, useEffect, useCallback } from 'react'
+import React, { useRef, FC, useEffect, useCallback, useMemo } from 'react'
 
 export const JBChart: FC<{
   series: SeriesOption | SeriesOption[]
@@ -34,54 +34,41 @@ export const JBChart: FC<{
 }) => {
   const chartRef = useRef<HTMLDivElement | null>(null)
   const chartInstanceRef = useRef<echarts.ECharts | null>(null)
+  const chartOption = useMemo<echarts.EChartsOption>(
+    () => ({
+      series,
+      ...(dataset && { dataset }),
+      ...(tooltip && { tooltip }),
+      ...(dataZoom && { dataZoom }),
+      ...(grid && { grid }),
+      ...(xAxis && { xAxis }),
+      ...(yAxis && { yAxis }),
+      ...(legend && { legend }),
+      ...(media && { media }),
+    }),
+    [series, tooltip, dataZoom, grid, xAxis, yAxis, dataset, legend, media]
+  )
 
   // Initialize the chart
   useEffect(() => {
-    if (chartRef.current && !chartInstanceRef.current) {
-      const chart = echarts.init(chartRef.current)
-      chartInstanceRef.current = chart
+    if (!chartRef.current) return
 
-      // Initial option setup
-      const initialOption: echarts.EChartsOption = {
-        series,
-        ...(dataset && { dataset }),
-        ...(tooltip && { tooltip }),
-        ...(dataZoom && { dataZoom }),
-        ...(grid && { grid }),
-        ...(xAxis && { xAxis }),
-        ...(yAxis && { yAxis }),
-        ...(legend && { legend }),
-        ...(media && { media }),
-      }
+    const chart = echarts.init(chartRef.current)
+    chartInstanceRef.current = chart
 
-      chart.setOption(initialOption)
-
-      return () => {
-        chart.dispose()
-        chartInstanceRef.current = null
-      }
+    return () => {
+      chart.dispose()
+      chartInstanceRef.current = null
     }
-  }, [chartRef.current])
+  }, [])
 
   // Update chart options when props change
   useEffect(() => {
     const chart = chartInstanceRef.current
     if (chart) {
-      const updatedOption: echarts.EChartsOption = {
-        series,
-        ...(dataset && { dataset }),
-        ...(tooltip && { tooltip }),
-        ...(dataZoom && { dataZoom }),
-        ...(grid && { grid }),
-        ...(xAxis && { xAxis }),
-        ...(yAxis && { yAxis }),
-        ...(legend && { legend }),
-        ...(media && { media }),
-      }
-
-      chart.setOption(updatedOption)
+      chart.setOption(chartOption)
     }
-  }, [series, tooltip, dataZoom, grid, xAxis, yAxis, dataset, legend, media])
+  }, [chartOption])
 
   // Handle window resize
   const handleResize = useCallback(() => {

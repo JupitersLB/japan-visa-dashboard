@@ -6,6 +6,8 @@ The browser talks to same-origin Next API routes under `/api/*`. Those routes pr
 
 The proxy applies bounded in-memory caching and per-client rate limiting before it calls the backend. This is intentionally lightweight: it reduces accidental or casual abuse without adding another paid service.
 
+The Cloud Run deploy target caps frontend scale with `MAX_INSTANCES` and `CONCURRENCY`. Keep a GCP budget alert on the project because the in-memory limiter is per instance and should not be treated as the hard cost-control boundary.
+
 ## Commands
 
 Run commands through Nix:
@@ -49,6 +51,7 @@ Optional runtime settings:
 
 - `FRONTEND_PROXY_RATE_LIMIT`: requests per client per route window. Default: `60`.
 - `FRONTEND_PROXY_RATE_LIMIT_WINDOW_SECONDS`: rate limit window. Default: `60`.
+- `FRONTEND_PROXY_RATE_LIMIT_MAX_BUCKETS`: maximum in-memory rate limit buckets per instance before oldest buckets are pruned. Default: `10000`.
 - `META_LATEST_PROXY_CACHE_SECONDS`: cache TTL for `/api/meta/latest`, in seconds. Default: `604800` / one week.
 - `PREDICTIONS_PROXY_CACHE_SECONDS`: cache TTL for `/api/predictions`, in seconds. Default: `604800` / one week.
 - `BACKEND_PROXY_CACHE_MAX_ENTRIES`: maximum in-memory backend response cache entries per instance. Default: `500`.

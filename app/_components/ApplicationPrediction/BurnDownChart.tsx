@@ -4,7 +4,28 @@ import { GraphPlaceholder } from './GraphPlaceholder'
 import { isPresent } from '@/utils/isPresent'
 import { TooltipComponentFormatterCallbackParams } from 'echarts'
 import { colors } from '@/utils/tailwind'
-import { PredictedData } from '@/utils/types'
+import { IBurnDownHash, PredictedData } from '@/utils/types'
+
+type TooltipSeriesParam = Extract<
+  TooltipComponentFormatterCallbackParams,
+  readonly unknown[]
+>[number]
+
+type EncodedTooltipSeriesParam = TooltipSeriesParam & {
+  encode?: {
+    y?: Array<keyof IBurnDownHash | number>
+  }
+}
+
+const getTooltipValue = (
+  data: IBurnDownHash,
+  param: EncodedTooltipSeriesParam
+) => {
+  const yKey = param.encode?.y?.[0]
+  if (typeof yKey !== 'string') return null
+
+  return data[yKey]
+}
 
 const formatTooltip = (params: TooltipComponentFormatterCallbackParams) => {
   if (!Array.isArray(params)) return ''
@@ -12,19 +33,19 @@ const formatTooltip = (params: TooltipComponentFormatterCallbackParams) => {
   const value = params[0]?.value
   if (typeof value !== 'object' || value === null) return ''
 
-  const data = Object.values(value)
-  const month = data[0]
-  const rows = params.reduce((acc: string[], cur: any) => {
-    if (!isPresent(data[cur.encode.y[0]])) return acc
+  const data = value as IBurnDownHash
+  const rows = params.reduce((acc: string[], cur) => {
+    const seriesValue = getTooltipValue(data, cur as EncodedTooltipSeriesParam)
+    if (!isPresent(seriesValue) || typeof seriesValue !== 'number') return acc
 
     acc.push(
       `<div style="color: ${cur.color};">${cur.marker} ${
         cur.seriesName
-      }: ${(data[cur.encode.y[0]] as unknown as number).toFixed() || '-'}</div>`
+      }: ${seriesValue.toFixed()}</div>`
     )
     return acc
   }, [])
-  return `<div>${month}</div>${rows.join('')}`
+  return `<div>${data.month}</div>${rows.join('')}`
 }
 
 export const BurnDownChart: FC<{
