@@ -47,15 +47,22 @@ const normalizeIpHeaderValue = (value: string) => {
   return isIP(trimmed) ? trimmed.toLowerCase() : null
 }
 
-const getFirstForwardedIp = (value: string | null) => {
+const getForwardedClientIp = (value: string | null) => {
   if (!value) return null
 
+  const forwardedIps = []
   for (const forwardedValue of value.split(',')) {
     const normalized = normalizeIpHeaderValue(forwardedValue)
-    if (normalized) return normalized
+    if (normalized) forwardedIps.push(normalized)
   }
 
-  return null
+  if (forwardedIps.length === 0) return null
+
+  // Google frontends append the client IP and then the Google proxy IP to
+  // X-Forwarded-For. Values before those may be client supplied.
+  return forwardedIps.length > 1
+    ? forwardedIps[forwardedIps.length - 2]
+    : forwardedIps[0]
 }
 
 const cleanupExpiredBuckets = (now: number, windowMs: number) => {
@@ -82,7 +89,7 @@ const pruneOldestBuckets = (maxBuckets: number) => {
 
 const getClientIdentifier = (request: NextRequest) => {
   return (
-    getFirstForwardedIp(request.headers.get('x-forwarded-for')) ||
+    getForwardedClientIp(request.headers.get('x-forwarded-for')) ||
     normalizeIpHeaderValue(request.headers.get('x-real-ip') || '') ||
     'unknown'
   )
