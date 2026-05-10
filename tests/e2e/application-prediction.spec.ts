@@ -68,13 +68,13 @@ test('loads the prediction form with mocked metadata', async ({ page }) => {
 
   await page.goto('/')
 
-  await expect(page.getByText('Location')).toBeVisible()
-  await expect(page.getByText('Application Type')).toBeVisible()
-  await expect(page.getByText('Submission Date')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Submit' })).toBeVisible()
-  await expect(page.getByText('Submit the form to see the chart')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Estimation' })).toBeVisible()
-  await expect(page.getByText('-')).toBeVisible()
+  await expect(page.getByTestId('location-select')).toBeVisible()
+  await expect(page.getByTestId('application-type-select')).toBeVisible()
+  await expect(page.getByTestId('submission-date-input')).toBeVisible()
+  await expect(page.getByTestId('prediction-submit')).toBeVisible()
+  await expect(page.getByTestId('prediction-chart-placeholder')).toBeVisible()
+  await expect(page.getByTestId('prediction-estimation')).toBeVisible()
+  await expect(page.getByTestId('prediction-estimation-value')).toHaveText('-')
 })
 
 test('submits the default prediction request and renders results', async ({
@@ -83,11 +83,13 @@ test('submits the default prediction request and renders results', async ({
   const { predictionRequests } = await mockApiResponses(page)
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Submit' }).click()
+  await page.getByTestId('prediction-submit').click()
 
-  await expect(page.getByText('April 2025 - May 2025')).toBeVisible()
-  await expect(page.getByText('Submit the form to see the chart')).toBeHidden()
-  await expect(page.locator('canvas')).toHaveCount(1)
+  await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
+    'April 2025 - May 2025'
+  )
+  await expect(page.getByTestId('prediction-chart-placeholder')).toBeHidden()
+  await expect(page.getByTestId('prediction-chart').locator('canvas')).toHaveCount(1)
 
   expect(predictionRequests).toHaveLength(1)
   const request = predictionRequests[0]
@@ -103,14 +105,16 @@ test('uses changed select values in the prediction request', async ({ page }) =>
 
   await page.goto('/')
 
-  await page.getByLabel('Location').click()
-  await page.getByRole('option', { name: 'Osaka' }).click()
+  await page.getByTestId('location-select').click()
+  await page.getByTestId('location-option-osaka').click()
 
-  await page.getByLabel('Application Type').click()
-  await page.getByRole('option', { name: 'Extension' }).click()
+  await page.getByTestId('application-type-select').click()
+  await page.getByTestId('application_type-option-extension').click()
 
-  await page.getByRole('button', { name: 'Submit' }).click()
-  await expect(page.getByText('April 2025 - May 2025')).toBeVisible()
+  await page.getByTestId('prediction-submit').click()
+  await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
+    'April 2025 - May 2025'
+  )
 
   expect(predictionRequests).toHaveLength(1)
   const request = predictionRequests[0]

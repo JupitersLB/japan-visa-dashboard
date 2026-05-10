@@ -31,7 +31,10 @@ export const PredictionForm: FC<{
             : initialValues.date,
       }}
       submitButton={
-        <button className="px-4 py-2 bg-primary-dark hover:bg-highlight text-foreground rounded-md">
+        <button
+          data-testid="prediction-submit"
+          className="px-4 py-2 bg-primary-dark hover:bg-highlight text-foreground rounded-md"
+        >
           Submit
         </button>
       }
@@ -44,6 +47,7 @@ export const PredictionForm: FC<{
         {({ value, onChange }) => (
           <JBSelect
             name="location"
+            testId="location-select"
             options={locationOptions}
             value={value}
             onChange={(selectedValue) => {
@@ -59,6 +63,7 @@ export const PredictionForm: FC<{
         {({ value, onChange }) => (
           <JBSelect
             name="application_type"
+            testId="application-type-select"
             options={applicationTypeOptions}
             value={value}
             onChange={(selectedValue) => {
@@ -70,6 +75,7 @@ export const PredictionForm: FC<{
       <FieldWrapper name="date" label="Submission Date">
         {({ value, onChange }) => (
           <DatePickerWrapper
+            testId="submission-date-input"
             onChange={onChange}
             value={value as DateTime | null}
             maxDate={initialDateTime}

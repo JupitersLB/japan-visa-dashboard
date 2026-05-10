@@ -19,7 +19,7 @@ export default defineConfig({
     : [['list'], ['html', { outputFolder: 'playwright-report' }]],
   use: {
     baseURL,
-    trace: 'on-first-retry',
+    trace: 'on',
   },
   webServer: {
     command: `yarn dev --hostname 127.0.0.1 --port ${PORT}`,

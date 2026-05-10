@@ -1,7 +1,10 @@
 import { FC } from 'react'
 
 export const GraphPlaceholder: FC = () => (
-  <div className="flex h-full w-full flex-col items-center justify-center bg-neutral rounded-lg">
+  <div
+    data-testid="prediction-chart-placeholder"
+    className="flex h-full w-full flex-col items-center justify-center bg-neutral rounded-lg"
+  >
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="200"

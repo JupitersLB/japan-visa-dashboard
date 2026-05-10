@@ -57,7 +57,7 @@ export const BurnDownChart: FC<{
   }
 
   return (
-    <div className="w-full h-full">
+    <div data-testid="prediction-chart" className="w-full h-full">
       <JBChart
         dataset={{
           source: burnDownData,

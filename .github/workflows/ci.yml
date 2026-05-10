@@ -11,6 +11,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
 
     steps:
       - name: Checkout repository
@@ -31,13 +34,18 @@ jobs:
       - name: Run Playwright tests
         run: nix develop -c make e2e
 
-      - name: Summarize Playwright results
-        if: always()
-        run: |
-          if [ ! -f test-results/junit.xml ]; then
-            exit 0
-          fi
+      - name: Publish Playwright test report
+        if: ${{ always() && hashFiles('test-results/junit.xml') != '' }}
+        uses: dorny/test-reporter@v1
+        with:
+          name: Playwright
+          path: test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: false
 
+      - name: Summarize Playwright results
+        if: ${{ always() && hashFiles('test-results/junit.xml') != '' }}
+        run: |
           node <<'NODE'
           const { readFileSync, appendFileSync } = require('node:fs')
 
@@ -46,6 +54,24 @@ jobs:
             [...junit.matchAll(/\b(tests|failures|errors|skipped)="(\d+)"/g)]
               .map(([, key, value]) => [key, Number(value)])
           )
+          const testcaseRows = [...junit.matchAll(/<testcase\b([^>]*)>([\s\S]*?)<\/testcase>|<testcase\b([^>]*)\/>/g)]
+            .map((match) => {
+              const attrsText = match[1] || match[3] || ''
+              const body = match[2] || ''
+              const testcaseAttrs = Object.fromEntries(
+                [...attrsText.matchAll(/\b(name|classname|time)="([^"]*)"/g)]
+                  .map(([, key, value]) => [key, value])
+              )
+              const status = body.includes('<failure')
+                ? 'failed'
+                : body.includes('<error')
+                  ? 'error'
+                  : body.includes('<skipped')
+                    ? 'skipped'
+                    : 'passed'
+
+              return `| ${status} | ${testcaseAttrs.name || 'unknown'} | ${testcaseAttrs.time || '0'}s |`
+            })
           const passed =
             (attrs.tests || 0) -
             (attrs.failures || 0) -
@@ -63,6 +89,14 @@ jobs:
               `| Failed | ${(attrs.failures || 0) + (attrs.errors || 0)} |`,
               `| Skipped | ${attrs.skipped || 0} |`,
               `| Total | ${attrs.tests || 0} |`,
+              '',
+              '### Test Cases',
+              '',
+              '| Status | Test | Duration |',
+              '| --- | --- | ---: |',
+              ...testcaseRows,
+              '',
+              'Download the `playwright-report` artifact for the HTML report and traces. Traces can be replayed from the report, or with `npx playwright show-trace` after downloading the artifact.',
               '',
             ].join('\n')
           )
