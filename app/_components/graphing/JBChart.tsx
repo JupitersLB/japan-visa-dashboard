@@ -1,15 +1,37 @@
-import * as echarts from 'echarts'
+import { LineChart } from 'echarts/charts'
+import {
+  DataZoomComponent,
+  DatasetComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+} from 'echarts/components'
+import * as echarts from 'echarts/core'
+import type { ECharts as CoreECharts } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 import type {
-  SeriesOption,
-  GridComponentOption,
   DataZoomComponentOption,
+  DatasetComponentOption,
+  EChartsCoreOption,
+  EChartsOption,
+  GridComponentOption,
+  LegendComponentOption,
+  SeriesOption,
   TooltipComponentOption,
   XAXisComponentOption,
   YAXisComponentOption,
-  LegendComponentOption,
-  DatasetComponentOption,
 } from 'echarts'
 import React, { useRef, FC, useEffect, useCallback, useMemo } from 'react'
+
+echarts.use([
+  LineChart,
+  DataZoomComponent,
+  DatasetComponent,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  CanvasRenderer,
+])
 
 export const JBChart: FC<{
   series: SeriesOption | SeriesOption[]
@@ -20,7 +42,7 @@ export const JBChart: FC<{
   yAxis?: YAXisComponentOption | YAXisComponentOption[]
   legend?: LegendComponentOption
   dataset?: DatasetComponentOption
-  media?: echarts.EChartsCoreOption['media']
+  media?: EChartsCoreOption['media']
 }> = ({
   series,
   tooltip,
@@ -33,8 +55,8 @@ export const JBChart: FC<{
   media,
 }) => {
   const chartRef = useRef<HTMLDivElement | null>(null)
-  const chartInstanceRef = useRef<echarts.ECharts | null>(null)
-  const chartOption = useMemo<echarts.EChartsOption>(
+  const chartInstanceRef = useRef<CoreECharts | null>(null)
+  const chartOption = useMemo<EChartsOption>(
     () => ({
       series,
       ...(dataset && { dataset }),
