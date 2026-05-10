@@ -2,7 +2,7 @@ import React, { FC } from 'react'
 import { JBChart } from '../graphing/JBChart'
 import { GraphPlaceholder } from './GraphPlaceholder'
 import { isPresent } from '@/utils/isPresent'
-import { TooltipComponentFormatterCallbackParams } from 'echarts'
+import type { TooltipComponentFormatterCallbackParams } from 'echarts'
 import { colors } from '@/utils/tailwind'
 import { IBurnDownHash, PredictedData } from '@/utils/types'
 
