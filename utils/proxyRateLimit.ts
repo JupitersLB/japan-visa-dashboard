@@ -26,14 +26,25 @@ const normalizeIpHeaderValue = (value: string) => {
   const trimmed = value.trim()
   if (!trimmed) return null
 
-  const withoutBrackets = trimmed.startsWith('[')
-    ? trimmed.slice(1, trimmed.indexOf(']'))
-    : trimmed
-  const withoutPort = withoutBrackets.includes(':')
-    ? withoutBrackets
-    : withoutBrackets.split(':')[0]
+  if (trimmed.startsWith('[')) {
+    const closingBracketIndex = trimmed.indexOf(']')
+    const bracketedIp =
+      closingBracketIndex === -1
+        ? trimmed.slice(1)
+        : trimmed.slice(1, closingBracketIndex)
 
-  return isIP(withoutPort) ? withoutPort.toLowerCase() : null
+    return isIP(bracketedIp) ? bracketedIp.toLowerCase() : null
+  }
+
+  const ipv4WithPortMatch = trimmed.match(
+    /^(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/
+  )
+  if (ipv4WithPortMatch) {
+    const ip = ipv4WithPortMatch[1]
+    return isIP(ip) ? ip : null
+  }
+
+  return isIP(trimmed) ? trimmed.toLowerCase() : null
 }
 
 const getFirstForwardedIp = (value: string | null) => {

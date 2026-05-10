@@ -22,9 +22,10 @@ const getTooltipValue = (
   param: EncodedTooltipSeriesParam
 ) => {
   const yKey = param.encode?.y?.[0]
-  if (typeof yKey !== 'string') return null
+  if (typeof yKey === 'string') return data[yKey]
+  if (typeof yKey === 'number') return Object.values(data)[yKey]
 
-  return data[yKey]
+  return null
 }
 
 const formatTooltip = (params: TooltipComponentFormatterCallbackParams) => {
