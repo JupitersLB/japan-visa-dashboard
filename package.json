@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "NODE_OPTIONS='-r dotenv/config' next build",
-    "start": "NODE_OPTIONS='-r dotenv/config -r newrelic' next start",
+    "start": "NODE_OPTIONS='-r dotenv/config -r newrelic' node .next/standalone/server.js",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "e2e": "playwright test",

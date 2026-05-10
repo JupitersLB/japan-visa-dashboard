@@ -30,6 +30,11 @@ COPY --from=builder /build/.next .next
 COPY --from=builder /build/next.config.ts next.config.ts
 COPY --from=builder /build/newrelic.js newrelic.js
 
+RUN mkdir -p .next/standalone/.next \
+    && rm -rf .next/standalone/.next/static .next/standalone/public \
+    && cp -R .next/static .next/standalone/.next/static \
+    && cp -R public .next/standalone/public
+
 ENV NODE_ENV=production
 
 EXPOSE 3000

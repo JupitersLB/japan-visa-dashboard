@@ -40,7 +40,12 @@ const predictionResponse = {
   monthly_weighted: 45,
 }
 
-const mockApiResponses = async (page: Page) => {
+type PredictionResponse = typeof predictionResponse
+
+const mockApiResponses = async (
+  page: Page,
+  prediction: PredictionResponse = predictionResponse
+) => {
   const predictionRequests: URL[] = []
 
   await page.route('**/api/meta/latest', async (route) => {
@@ -56,23 +61,29 @@ const mockApiResponses = async (page: Page) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(predictionResponse),
+      body: JSON.stringify(prediction),
     })
   })
 
   return { predictionRequests }
 }
 
-const openPredictionPage = async (page: Page) => {
-  const api = await mockApiResponses(page)
+const openPredictionPage = async (
+  page: Page,
+  prediction?: PredictionResponse
+) => {
+  const api = await mockApiResponses(page, prediction)
   await page.goto('/')
   return api
 }
 
-const submitPrediction = async (page: Page) => {
+const submitPrediction = async (
+  page: Page,
+  expectedEstimation = 'April 2025 - May 2025'
+) => {
   await page.getByTestId('prediction-submit').click()
   await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
-    'April 2025 - May 2025'
+    expectedEstimation
   )
 }
 
@@ -133,4 +144,38 @@ test('uses changed select values in the prediction request', async ({ page }) =>
     location: 'osaka',
     applicationType: 'extension',
   })
+})
+
+test('keeps the placeholder for a successful prediction with no chart data', async ({
+  page,
+}) => {
+  const emptyPredictionResponse: PredictionResponse = {
+    ...predictionResponse,
+    burn_down_data: [],
+    predicted_zero_month_average: null,
+    predicted_zero_month_weighted: null,
+  }
+  const { predictionRequests } = await openPredictionPage(
+    page,
+    emptyPredictionResponse
+  )
+
+  await submitPrediction(page, '-')
+
+  await expect(page.getByTestId('prediction-chart-placeholder')).toBeVisible()
+  await expect(page.getByTestId('prediction-chart')).toBeHidden()
+  expect(predictionRequests).toHaveLength(1)
+})
+
+test('renders one estimation month when average and weighted predictions match', async ({
+  page,
+}) => {
+  const sameMonthPredictionResponse: PredictionResponse = {
+    ...predictionResponse,
+    predicted_zero_month_average: '2025-04',
+    predicted_zero_month_weighted: '2025-04',
+  }
+
+  await openPredictionPage(page, sameMonthPredictionResponse)
+  await submitPrediction(page, 'April 2025')
 })
