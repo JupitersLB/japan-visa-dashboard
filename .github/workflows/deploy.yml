@@ -76,3 +76,16 @@ jobs:
         env:
           SOPS_AGE_KEY_FILE: ./keys.txt
         run: nix develop -c make deploy IMAGE_TAG=${{ github.ref_name }}
+
+      - name: Notify Slack of successful deployment
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Deployment successful for ${{ github.repository }} ${{ github.ref_name }}"
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "*:white_check_mark: Deployment successful*\n*Repository:* ${{ github.repository }}\n*Tag:* ${{ github.ref_name }}\n*Triggered by:* ${{ github.actor }}\n*Commit:* <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Actions>"
