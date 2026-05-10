@@ -131,10 +131,37 @@ const updateChangelog = () => {
   process.stdout.write(`${version.tag}\n`)
 }
 
+const validateVersion = () => {
+  const version = readVersion()
+  const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
+  const packageVersion = `v${packageJson.version}`
+
+  if (packageVersion !== version.tag) {
+    throw new Error(
+      `package.json version ${packageVersion} does not match VERSION ${version.tag}`
+    )
+  }
+
+  if (process.env.GITHUB_REF_TYPE === 'tag') {
+    const refName = process.env.GITHUB_REF_NAME
+    if (refName !== version.tag) {
+      throw new Error(
+        `GitHub tag ${refName} does not match VERSION ${version.tag}`
+      )
+    }
+  }
+
+  process.stdout.write(`${version.tag}\n`)
+}
+
 if (command === 'bump') {
   bumpVersion()
 } else if (command === 'changelog') {
   updateChangelog()
+} else if (command === 'validate') {
+  validateVersion()
 } else {
-  throw new Error('Usage: node scripts/release-version.mjs <bump|changelog>')
+  throw new Error(
+    'Usage: node scripts/release-version.mjs <bump|changelog|validate>'
+  )
 }

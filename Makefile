@@ -1,4 +1,4 @@
-.PHONY: help env-smoke deps dev app-build image-build start lint format image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check changelog release_type hotfix release
+.PHONY: help env-smoke deps dev app-build image-build start lint format image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
 
 PROJECT_ID ?= japan-visa-predictions
 SERVICE_NAME ?= jp-visa-front
@@ -21,6 +21,7 @@ help:
 	@printf "  start      Start the built Next.js app.\n"
 	@printf "  lint       Run frontend lint checks.\n"
 	@printf "  format     Format frontend files.\n"
+	@printf "  version-check Verify VERSION, package.json, and release tag consistency.\n"
 	@printf "  secrets    Decrypt local frontend secrets.\n"
 	@printf "  service-deploy Deploy the public Cloud Run frontend service.\n"
 	@printf "  deploy     Build, push, and deploy the Cloud Run frontend service.\n"
@@ -52,7 +53,10 @@ format:
 app-build:
 	yarn build
 
-check: env-smoke lint app-build
+check: env-smoke version-check lint app-build
+
+version-check:
+	node scripts/release-version.mjs validate
 
 changelog:
 	node scripts/release-version.mjs changelog
