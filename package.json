@@ -19,7 +19,7 @@
     "dotenv": "^16.4.7",
     "echarts": "^5.5.1",
     "luxon": "^3.5.0",
-    "newrelic": "^12.9.0",
+    "newrelic": "^13.19.1",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-datepicker": "^7.5.0",
