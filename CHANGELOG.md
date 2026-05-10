@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.6.0 - 2026-05-10
+
+- improve pruning (#19)
+
 ## v0.5.0 - 2026-05-10
 
 - small fix (#18)
