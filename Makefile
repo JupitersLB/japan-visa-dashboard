@@ -1,4 +1,4 @@
-.PHONY: help env-smoke deps dev app-build standalone-assets image-build start lint format e2e e2e-prod e2e-install image-push push clean registry-prune registry-prune-apply secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
+.PHONY: help env-smoke deps dev app-build standalone-assets image-build sourcemap-image-build runtime-sourcemaps-check start lint format e2e e2e-prod e2e-install image-push push clean registry-prune registry-prune-apply secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
 
 PROJECT_ID ?= japan-visa-predictions
 SERVICE_NAME ?= jp-visa-front
@@ -6,6 +6,8 @@ REGION ?= us-central1
 IMAGE_TAG ?= latest
 IMAGE_REPOSITORY ?= gcr.io/$(PROJECT_ID)/$(SERVICE_NAME)
 IMAGE ?= $(IMAGE_REPOSITORY):$(IMAGE_TAG)
+SOURCEMAP_IMAGE ?= $(IMAGE_REPOSITORY):$(IMAGE_TAG)-sourcemaps
+ROLLBAR_CODE_VERSION ?= $(shell git rev-parse HEAD)
 MAX_INSTANCES ?= 2
 MEMORY ?= 512Mi
 CONCURRENCY ?= 20
@@ -18,6 +20,7 @@ help:
 	@printf "  app-build  Build the Next.js application.\n"
 	@printf "  image-build Build the frontend Docker image locally.\n"
 	@printf "  image-push Push the frontend Docker image.\n"
+	@printf "  runtime-sourcemaps-check Verify the runtime image does not contain public source maps.\n"
 	@printf "  registry-prune Preview registry image cleanup.\n"
 	@printf "  registry-prune-apply Delete old registry images after previewing cleanup.\n"
 	@printf "  start      Start the built Next.js app.\n"
@@ -99,20 +102,26 @@ secrets:
 	sops -d secrets/.env.enc > .env
 
 extract-sourcemaps:
-	# Create a temporary container from the built image
-	docker create --name sourcemap-container $(IMAGE)
-	# Copy the sourcemaps from the container to the local directory
-	docker cp sourcemap-container:/app/.next/static/chunks ./local-sourcemaps
-	# Remove the temporary container
-	docker rm sourcemap-container
+	$(MAKE) sourcemap-image-build
+	rm -rf ./local-sourcemaps
+	mkdir -p ./local-sourcemaps
+	@container_id=$$(docker create $(SOURCEMAP_IMAGE)); \
+	trap 'docker rm -f "$$container_id" >/dev/null' EXIT; \
+	docker cp "$$container_id":/sourcemaps/static ./local-sourcemaps/static
 
 sourcemaps: extract-sourcemaps
-	./upload-sourcemaps.sh
+	ROLLBAR_CODE_VERSION="$(ROLLBAR_CODE_VERSION)" ./upload-sourcemaps.sh --source-root ./local-sourcemaps/static
 	# Clean up only after successfully sending sourcemaps
 	rm -rf ./local-sourcemaps
 
 image-build: secrets
-	DOCKER_BUILDKIT=1 docker build --secret id=frontend_env,src=.env -t $(IMAGE) .
+	DOCKER_BUILDKIT=1 docker build --secret id=frontend_env,src=.env --build-arg ROLLBAR_CODE_VERSION="$(ROLLBAR_CODE_VERSION)" -t $(IMAGE) .
+
+sourcemap-image-build: secrets
+	DOCKER_BUILDKIT=1 docker build --target sourcemaps --secret id=frontend_env,src=.env --build-arg ROLLBAR_CODE_VERSION="$(ROLLBAR_CODE_VERSION)" -t $(SOURCEMAP_IMAGE) .
+
+runtime-sourcemaps-check: image-build
+	docker run --rm --entrypoint sh $(IMAGE) -c 'if find /app/.next -type f -name "*.map" | grep -q .; then find /app/.next -type f -name "*.map"; exit 1; fi'
 
 build: image-build
 

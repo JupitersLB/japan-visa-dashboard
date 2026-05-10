@@ -47,6 +47,8 @@ Release tags are managed from `VERSION`. Use `make hotfix` for a patch release a
 
 `make image-build` also runs `make secrets`, but passes the decrypted `.env` into Docker as a BuildKit secret for `next build`. The file is ignored by the Docker build context and is not copied into the runtime image. Production-only server values are set as Cloud Run runtime environment variables during `make service-deploy`.
 
+Production browser source maps are generated for private Rollbar upload, not for public serving. `make image-push` builds a separate source-map artifact image, uploads JavaScript maps to Rollbar with the current Git commit as the code version, and pushes a runtime image that has `.map` files removed. Use `make runtime-sourcemaps-check` after `make image-build` to verify the runtime image remains map-free.
+
 Use `make registry-prune` to preview old GCR image deletion. The cleanup reads `VERSION`, refuses to run if that tag is not present in the registry, keeps the image digest for that tag, and keeps the two newest digests by registry update time so the current deploy and the image it replaced remain available. After reviewing the preview, run `make registry-prune-apply` to delete the remaining digests.
 
 ## Proxy Controls

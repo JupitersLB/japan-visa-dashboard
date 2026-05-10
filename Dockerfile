@@ -5,6 +5,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /build
 
+ARG ROLLBAR_CODE_VERSION
+ENV NEXT_PUBLIC_ROLLBAR_CODE_VERSION=$ROLLBAR_CODE_VERSION
+
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
@@ -12,6 +15,12 @@ COPY . .
 
 RUN --mount=type=secret,id=frontend_env,target=/build/.env \
     yarn build && rm -rf .next/cache
+
+FROM node:20-alpine AS sourcemaps
+
+WORKDIR /sourcemaps
+
+COPY --from=builder /build/.next/static static
 
 # Stage 2: Production-ready Image
 FROM node:20-alpine AS runner
@@ -33,7 +42,9 @@ COPY --from=builder /build/newrelic.js newrelic.js
 RUN mkdir -p .next/standalone/.next \
     && rm -rf .next/standalone/.next/static .next/standalone/public \
     && cp -R .next/static .next/standalone/.next/static \
-    && cp -R public .next/standalone/public
+    && cp -R public .next/standalone/public \
+    && find .next -type f -name '*.map' -exec rm -f {} \; \
+    && ! find .next -type f -name '*.map' | grep -q .
 
 ENV NODE_ENV=production
 
