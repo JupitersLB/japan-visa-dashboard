@@ -1,3 +1,9 @@
+import {
+  ApplicationLocation,
+  ApplicationType,
+  SelectOption,
+} from '@/utils/types'
+
 export const categoryOptions = [
   { value: 'approved', label: 'Approved' },
   { value: 'newly_accepted', label: 'Newly accepted' },
@@ -25,7 +31,7 @@ export const locationOptions = [
   { value: 'tokyo', label: 'Tokyo' },
   { value: 'total', label: 'Total' },
   { value: 'yokohama', label: 'Yokohama' },
-]
+] satisfies SelectOption<ApplicationLocation>[]
 
 export const applicationTypeOptions = [
   { value: 'activities_outside_scope', label: 'Activities outside scope' },
@@ -37,4 +43,4 @@ export const applicationTypeOptions = [
     label: 'Residence status acquisition',
   },
   { value: 'status_change', label: 'Status change' },
-]
+] satisfies SelectOption<ApplicationType>[]

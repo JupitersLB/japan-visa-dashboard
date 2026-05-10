@@ -7,6 +7,18 @@ import { GoogleAnalytics } from './_components/analytics'
 import { Provider as RollbarProvider } from '@rollbar/react'
 import { clientConfig } from '@/utils/rollbar'
 import newrelic from 'newrelic'
+import { PHASE_PRODUCTION_BUILD } from 'next/constants'
+
+type NewRelicAgent = {
+  collector?: {
+    isConnected?: () => boolean
+  }
+  on?: (event: 'connected', callback: () => void) => void
+}
+
+type NewRelicRuntime = {
+  agent?: NewRelicAgent
+}
 
 const siteUrl = (() => {
   const configuredUrl =
@@ -48,24 +60,42 @@ export const metadata: Metadata = {
 
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID
 const isProduction = process.env.NODE_ENV === 'production'
+const isProductionBuild = process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
 const isNewRelicEnabled =
   isProduction &&
+  !isProductionBuild &&
   Boolean(process.env.NEW_RELIC_LICENSE_KEY && process.env.NEW_RELIC_APP_NAME)
+const NEW_RELIC_CONNECT_TIMEOUT_MS = 1000
+
+const waitForNewRelicConnection = async (agent: NewRelicAgent) => {
+  if (
+    !agent.collector?.isConnected ||
+    agent.collector.isConnected() !== false ||
+    !agent.on
+  ) {
+    return
+  }
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      agent.on?.('connected', resolve)
+    }),
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, NEW_RELIC_CONNECT_TIMEOUT_MS)
+    }),
+  ])
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const newrelicAgent = (newrelic as any).agent
-  if (
-    isNewRelicEnabled &&
-    newrelicAgent?.collector?.isConnected &&
-    newrelicAgent.collector.isConnected() === false
-  ) {
-    await new Promise((resolve) => {
-      newrelicAgent.on('connected', resolve)
-    })
+  if (isNewRelicEnabled) {
+    const newrelicAgent = (newrelic as unknown as NewRelicRuntime).agent
+    if (newrelicAgent) {
+      await waitForNewRelicConnection(newrelicAgent)
+    }
   }
 
   const browserTimingHeader = isNewRelicEnabled

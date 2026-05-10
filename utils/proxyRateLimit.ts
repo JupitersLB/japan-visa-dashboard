@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isIP } from 'net'
 
 type RateLimitEntry = {
   count: number
@@ -6,6 +7,7 @@ type RateLimitEntry = {
 }
 
 const buckets = new Map<string, RateLimitEntry>()
+let nextCleanupAt = 0
 
 const getNumericSetting = (value: string | undefined, fallback: number) => {
   const parsed = Number(value)
@@ -17,12 +19,73 @@ const getLimit = () =>
 const getWindowMs = () =>
   getNumericSetting(process.env.FRONTEND_PROXY_RATE_LIMIT_WINDOW_SECONDS, 60) *
   1000
+const getMaxBuckets = () =>
+  getNumericSetting(process.env.FRONTEND_PROXY_RATE_LIMIT_MAX_BUCKETS, 10000)
+
+const normalizeIpHeaderValue = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  if (trimmed.startsWith('[')) {
+    const closingBracketIndex = trimmed.indexOf(']')
+    const bracketedIp =
+      closingBracketIndex === -1
+        ? trimmed.slice(1)
+        : trimmed.slice(1, closingBracketIndex)
+
+    return isIP(bracketedIp) ? bracketedIp.toLowerCase() : null
+  }
+
+  const ipv4WithPortMatch = trimmed.match(
+    /^(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/
+  )
+  if (ipv4WithPortMatch) {
+    const ip = ipv4WithPortMatch[1]
+    return isIP(ip) ? ip : null
+  }
+
+  return isIP(trimmed) ? trimmed.toLowerCase() : null
+}
+
+const getFirstForwardedIp = (value: string | null) => {
+  if (!value) return null
+
+  for (const forwardedValue of value.split(',')) {
+    const normalized = normalizeIpHeaderValue(forwardedValue)
+    if (normalized) return normalized
+  }
+
+  return null
+}
+
+const cleanupExpiredBuckets = (now: number, windowMs: number) => {
+  if (now < nextCleanupAt) return
+
+  for (const [key, entry] of buckets) {
+    if (entry.resetAt <= now) {
+      buckets.delete(key)
+    }
+  }
+
+  nextCleanupAt = now + Math.max(windowMs, 1000)
+}
+
+const pruneOldestBuckets = (maxBuckets: number) => {
+  if (maxBuckets <= 0) return
+
+  while (buckets.size > maxBuckets) {
+    const oldestKey = buckets.keys().next().value as string | undefined
+    if (!oldestKey) return
+    buckets.delete(oldestKey)
+  }
+}
 
 const getClientIdentifier = (request: NextRequest) => {
-  const forwardedFor = request.headers.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0]?.trim() || 'unknown'
-
-  return request.headers.get('x-real-ip') || 'unknown'
+  return (
+    getFirstForwardedIp(request.headers.get('x-forwarded-for')) ||
+    normalizeIpHeaderValue(request.headers.get('x-real-ip') || '') ||
+    'unknown'
+  )
 }
 
 export const rateLimitProxyRequest = (
@@ -34,6 +97,8 @@ export const rateLimitProxyRequest = (
 
   const now = Date.now()
   const windowMs = getWindowMs()
+  cleanupExpiredBuckets(now, windowMs)
+
   const key = `${scope}:${getClientIdentifier(request)}`
   const current = buckets.get(key)
 
@@ -42,6 +107,7 @@ export const rateLimitProxyRequest = (
       count: 1,
       resetAt: now + windowMs,
     })
+    pruneOldestBuckets(getMaxBuckets())
     return null
   }
 
