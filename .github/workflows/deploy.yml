@@ -77,6 +77,10 @@ jobs:
           SOPS_AGE_KEY_FILE: ./keys.txt
         run: nix develop -c make deploy IMAGE_TAG=${{ github.ref_name }}
 
+      - name: Prune old registry images
+        continue-on-error: true
+        run: nix develop -c make registry-prune-apply
+
       - name: Load Slack webhook
         id: slack-webhook
         env:

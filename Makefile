@@ -1,4 +1,4 @@
-.PHONY: help env-smoke deps dev app-build standalone-assets image-build start lint format e2e e2e-prod e2e-install image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
+.PHONY: help env-smoke deps dev app-build standalone-assets image-build start lint format e2e e2e-prod e2e-install image-push push clean registry-prune registry-prune-apply secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
 
 PROJECT_ID ?= japan-visa-predictions
 SERVICE_NAME ?= jp-visa-front
@@ -18,6 +18,8 @@ help:
 	@printf "  app-build  Build the Next.js application.\n"
 	@printf "  image-build Build the frontend Docker image locally.\n"
 	@printf "  image-push Push the frontend Docker image.\n"
+	@printf "  registry-prune Preview registry image cleanup.\n"
+	@printf "  registry-prune-apply Delete old registry images after previewing cleanup.\n"
 	@printf "  start      Start the built Next.js app.\n"
 	@printf "  lint       Run frontend lint checks.\n"
 	@printf "  e2e        Run Playwright browser tests with mocked API responses.\n"
@@ -118,6 +120,12 @@ image-push: image-build sourcemaps
 	docker push $(IMAGE)
 
 push: image-push
+
+registry-prune:
+	node scripts/prune-registry-images.mjs --image-repository=$(IMAGE_REPOSITORY)
+
+registry-prune-apply:
+	DRY_RUN=false node scripts/prune-registry-images.mjs --image-repository=$(IMAGE_REPOSITORY)
 
 service-deploy:
 	@set -a; [ ! -f .env ] || . ./.env; set +a; \
