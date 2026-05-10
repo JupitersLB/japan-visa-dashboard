@@ -77,10 +77,32 @@ jobs:
           SOPS_AGE_KEY_FILE: ./keys.txt
         run: nix develop -c make deploy IMAGE_TAG=${{ github.ref_name }}
 
+      - name: Load Slack webhook
+        id: slack-webhook
+        env:
+          CONFIGURED_SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL || vars.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$CONFIGURED_SLACK_WEBHOOK_URL" ]; then
+            slack_webhook_url="$CONFIGURED_SLACK_WEBHOOK_URL"
+          else
+            set -a
+            . ./.env
+            set +a
+            slack_webhook_url="${SLACK_WEBHOOK_URL:-}"
+          fi
+
+          if [ -z "$slack_webhook_url" ]; then
+            echo "::error::SLACK_WEBHOOK_URL is not configured. Add it to the encrypted deployment .env, or as a GitHub Actions secret or variable."
+            exit 1
+          fi
+
+          echo "::add-mask::$slack_webhook_url"
+          echo "url=$slack_webhook_url" >> "$GITHUB_OUTPUT"
+
       - name: Notify Slack of successful deployment
         uses: slackapi/slack-github-action@v3.0.3
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook: ${{ steps.slack-webhook.outputs.url }}
           webhook-type: incoming-webhook
           payload: |
             text: "Deployment successful for ${{ github.repository }} ${{ github.ref_name }}"
