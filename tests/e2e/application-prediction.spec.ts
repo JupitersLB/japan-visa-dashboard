@@ -63,10 +63,32 @@ const mockApiResponses = async (page: Page) => {
   return { predictionRequests }
 }
 
-test('loads the prediction form with mocked metadata', async ({ page }) => {
-  await mockApiResponses(page)
-
+const openPredictionPage = async (page: Page) => {
+  const api = await mockApiResponses(page)
   await page.goto('/')
+  return api
+}
+
+const submitPrediction = async (page: Page) => {
+  await page.getByTestId('prediction-submit').click()
+  await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
+    'April 2025 - May 2025'
+  )
+}
+
+const expectPredictionRequest = (
+  request: URL,
+  expected: { location: string; applicationType: string }
+) => {
+  expect(request.searchParams.get('location')).toBe(expected.location)
+  expect(request.searchParams.get('application_type')).toBe(
+    expected.applicationType
+  )
+  expect(request.searchParams.get('submitted_from')).toBeTruthy()
+}
+
+test('loads the prediction form with mocked metadata', async ({ page }) => {
+  await openPredictionPage(page)
 
   await expect(page.getByTestId('location-select')).toBeVisible()
   await expect(page.getByTestId('application-type-select')).toBeVisible()
@@ -80,30 +102,23 @@ test('loads the prediction form with mocked metadata', async ({ page }) => {
 test('submits the default prediction request and renders results', async ({
   page,
 }) => {
-  const { predictionRequests } = await mockApiResponses(page)
+  const { predictionRequests } = await openPredictionPage(page)
 
-  await page.goto('/')
-  await page.getByTestId('prediction-submit').click()
-
-  await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
-    'April 2025 - May 2025'
-  )
+  await submitPrediction(page)
   await expect(page.getByTestId('prediction-chart-placeholder')).toBeHidden()
-  await expect(page.getByTestId('prediction-chart').locator('canvas')).toHaveCount(1)
+  await expect(
+    page.getByTestId('prediction-chart').locator('canvas')
+  ).toHaveCount(1)
 
   expect(predictionRequests).toHaveLength(1)
-  const request = predictionRequests[0]
-  expect(request.searchParams.get('location')).toBe('tokyo')
-  expect(request.searchParams.get('application_type')).toBe(
-    'permanent_residence'
-  )
-  expect(request.searchParams.get('submitted_from')).toBeTruthy()
+  expectPredictionRequest(predictionRequests[0], {
+    location: 'tokyo',
+    applicationType: 'permanent_residence',
+  })
 })
 
 test('uses changed select values in the prediction request', async ({ page }) => {
-  const { predictionRequests } = await mockApiResponses(page)
-
-  await page.goto('/')
+  const { predictionRequests } = await openPredictionPage(page)
 
   await page.getByTestId('location-select').click()
   await page.getByTestId('location-option-osaka').click()
@@ -111,13 +126,11 @@ test('uses changed select values in the prediction request', async ({ page }) =>
   await page.getByTestId('application-type-select').click()
   await page.getByTestId('application_type-option-extension').click()
 
-  await page.getByTestId('prediction-submit').click()
-  await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
-    'April 2025 - May 2025'
-  )
+  await submitPrediction(page)
 
   expect(predictionRequests).toHaveLength(1)
-  const request = predictionRequests[0]
-  expect(request.searchParams.get('location')).toBe('osaka')
-  expect(request.searchParams.get('application_type')).toBe('extension')
+  expectPredictionRequest(predictionRequests[0], {
+    location: 'osaka',
+    applicationType: 'extension',
+  })
 })
