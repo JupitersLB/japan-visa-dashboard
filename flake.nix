@@ -24,7 +24,7 @@
           default = pkgs.mkShell {
             packages = with pkgs; [
               nodejs_20
-              yarn
+              pnpm
               gnumake
               sops
               google-cloud-sdk
@@ -32,7 +32,7 @@
             ];
 
             shellHook = ''
-              printf "frontend dev shell: node $(node --version), yarn $(yarn --version)\n"
+              printf "frontend dev shell: node $(node --version), pnpm $(pnpm --version)\n"
               printf "run 'make help' for commands\n"
             '';
           };
