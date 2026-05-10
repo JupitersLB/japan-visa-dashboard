@@ -1,4 +1,4 @@
-.PHONY: help env-smoke deps dev app-build image-build start lint format image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
+.PHONY: help env-smoke deps dev app-build image-build start lint format e2e e2e-install image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
 
 PROJECT_ID ?= japan-visa-predictions
 SERVICE_NAME ?= jp-visa-front
@@ -20,6 +20,7 @@ help:
 	@printf "  image-push Push the frontend Docker image.\n"
 	@printf "  start      Start the built Next.js app.\n"
 	@printf "  lint       Run frontend lint checks.\n"
+	@printf "  e2e        Run Playwright browser tests with mocked API responses.\n"
 	@printf "  format     Format frontend files.\n"
 	@printf "  version-check Verify VERSION, package.json, and release tag consistency.\n"
 	@printf "  secrets    Decrypt local frontend secrets.\n"
@@ -46,6 +47,12 @@ start:
 
 lint:
 	yarn lint
+
+e2e:
+	yarn e2e
+
+e2e-install:
+	yarn e2e:install
 
 format:
 	yarn format

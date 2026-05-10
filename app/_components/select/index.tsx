@@ -118,6 +118,7 @@ export const JBSelect = <
 }: JBSelectProps<TOption, TIsMulti>) => {
   return (
     <Select<TOption, TIsMulti>
+      inputId={name}
       name={name}
       options={options}
       isMulti={isMulti}

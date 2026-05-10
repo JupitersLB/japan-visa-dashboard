@@ -43,6 +43,7 @@ export const PredictionForm: FC<{
       >
         {({ value, onChange }) => (
           <JBSelect
+            name="location"
             options={locationOptions}
             value={value}
             onChange={(selectedValue) => {
@@ -57,6 +58,7 @@ export const PredictionForm: FC<{
       >
         {({ value, onChange }) => (
           <JBSelect
+            name="application_type"
             options={applicationTypeOptions}
             value={value}
             onChange={(selectedValue) => {
