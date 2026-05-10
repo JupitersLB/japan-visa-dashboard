@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.0 - 2026-05-10
+
+- add slack notification (#17)
+
 ## v0.3.0 - 2026-05-10
 
 - add testing suite (#16)
