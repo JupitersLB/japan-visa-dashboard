@@ -2,6 +2,8 @@ const defaultBackendBaseUrl = 'http://127.0.0.1:8000'
 const metadataIdentityUrl =
   'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity'
 const tokenCacheTtlMs = 45 * 60 * 1000
+const defaultIdentityTokenTimeoutMs = 2000
+const defaultBackendProxyTimeoutMs = 10000
 
 type JsonBody = Record<string, unknown> | unknown[]
 
@@ -65,8 +67,56 @@ const getNumericSetting = (value: string | undefined, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-const getMaxResponseCacheEntries = () =>
-  getNumericSetting(process.env.BACKEND_PROXY_CACHE_MAX_ENTRIES, 500)
+const getPositiveNumericSetting = (
+  value: string | undefined,
+  fallback: number
+) => {
+  const parsed = getNumericSetting(value, fallback)
+  return parsed > 0 ? parsed : fallback
+}
+
+const maxResponseCacheEntries = getNumericSetting(
+  process.env.BACKEND_PROXY_CACHE_MAX_ENTRIES,
+  500
+)
+const identityTokenTimeoutMs = getPositiveNumericSetting(
+  process.env.BACKEND_IDENTITY_TOKEN_TIMEOUT_MS,
+  defaultIdentityTokenTimeoutMs
+)
+const backendProxyTimeoutMs = getPositiveNumericSetting(
+  process.env.BACKEND_PROXY_TIMEOUT_MS,
+  defaultBackendProxyTimeoutMs
+)
+
+const timeoutBody = (code: string) => ({
+  detail: {
+    code,
+  },
+})
+
+const fetchWithTimeout = async (
+  input: URL | RequestInfo,
+  init: RequestInit,
+  timeoutMs: number,
+  timeoutCode: string
+) => {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new BackendProxyError(504, timeoutBody(timeoutCode))
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
 
 const getCachedResponse = (key: string) => {
   const cached = responseCache.get(key)
@@ -83,10 +133,9 @@ const getCachedResponse = (key: string) => {
 const setCachedResponse = (key: string, body: JsonBody, ttlMs: number) => {
   if (ttlMs <= 0) return
 
-  const maxEntries = getMaxResponseCacheEntries()
-  if (maxEntries <= 0) return
+  if (maxResponseCacheEntries <= 0) return
 
-  if (responseCache.size >= maxEntries) {
+  if (responseCache.size >= maxResponseCacheEntries) {
     const oldestKey = responseCache.keys().next().value
     if (oldestKey) responseCache.delete(oldestKey)
   }
@@ -106,12 +155,17 @@ const getIdentityToken = async () => {
   const url = new URL(metadataIdentityUrl)
   url.searchParams.set('audience', getBackendAudience())
 
-  const response = await fetch(url, {
-    headers: {
-      'Metadata-Flavor': 'Google',
+  const response = await fetchWithTimeout(
+    url,
+    {
+      headers: {
+        'Metadata-Flavor': 'Google',
+      },
+      cache: 'no-store',
     },
-    cache: 'no-store',
-  })
+    identityTokenTimeoutMs,
+    'backend_identity_token_timeout'
+  )
 
   if (!response.ok) {
     throw new BackendProxyError(502, {
@@ -164,11 +218,16 @@ export const fetchBackendJson = async <T>(
     headers.set('Authorization', `Bearer ${await getIdentityToken()}`)
   }
 
-  const response = await fetch(url, {
-    ...init,
-    headers,
-    cache: 'no-store',
-  })
+  const response = await fetchWithTimeout(
+    url,
+    {
+      ...init,
+      headers,
+      cache: 'no-store',
+    },
+    backendProxyTimeoutMs,
+    'backend_proxy_timeout'
+  )
 
   const body = await readJsonBody(response)
 

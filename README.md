@@ -61,5 +61,7 @@ Optional runtime settings:
 - `META_LATEST_PROXY_CACHE_SECONDS`: cache TTL for `/api/meta/latest`, in seconds. Default: `604800` / one week.
 - `PREDICTIONS_PROXY_CACHE_SECONDS`: cache TTL for `/api/predictions`, in seconds. Default: `604800` / one week.
 - `BACKEND_PROXY_CACHE_MAX_ENTRIES`: maximum in-memory backend response cache entries per instance. Default: `500`.
+- `BACKEND_IDENTITY_TOKEN_TIMEOUT_MS`: timeout for fetching the Google identity token used to call the private backend. Default: `2000`.
+- `BACKEND_PROXY_TIMEOUT_MS`: timeout for frontend proxy calls to the backend API. Default: `10000`.
 
 The backend data updates monthly, so one-week cache defaults keep repeat queries cheap while still limiting stale responses after a fresh import.
