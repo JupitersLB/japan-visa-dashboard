@@ -6,9 +6,12 @@ import type ReactSelect from 'react-select'
 import type {
   GroupBase,
   OnChangeValue,
+  OptionProps,
   Props as SelectProps,
+  SelectComponentsConfig,
   StylesConfig,
 } from 'react-select'
+import { components as ReactSelectComponents } from 'react-select'
 import type { SelectOption } from '@/utils/types'
 
 type JBSelectOption = SelectOption<string>
@@ -104,7 +107,29 @@ type JBSelectProps<
   isMulti?: TIsMulti
   value?: OnChangeValue<TOption, TIsMulti>
   onChange?: (value: OnChangeValue<TOption, TIsMulti>) => void
+  testId?: string
 }
+
+const getSelectComponents = <
+  TOption extends JBSelectOption,
+  TIsMulti extends boolean,
+>(
+  name: string | undefined
+): SelectComponentsConfig<TOption, TIsMulti, GroupBase<TOption>> => ({
+  Option: (props: OptionProps<TOption, TIsMulti>) => (
+    <ReactSelectComponents.Option
+      {...props}
+      innerProps={
+        {
+          ...props.innerProps,
+          'data-testid': name
+            ? `${name}-option-${props.data.value}`
+            : undefined,
+        } as typeof props.innerProps & { 'data-testid'?: string }
+      }
+    />
+  ),
+})
 
 export const JBSelect = <
   TOption extends JBSelectOption,
@@ -115,16 +140,21 @@ export const JBSelect = <
   isMulti,
   value,
   onChange,
+  testId,
 }: JBSelectProps<TOption, TIsMulti>) => {
   return (
-    <Select<TOption, TIsMulti>
-      name={name}
-      options={options}
-      isMulti={isMulti}
-      value={value}
-      onChange={onChange}
-      styles={getCustomStyles<TOption, TIsMulti>()}
-      classNamePrefix="react-select"
-    />
+    <div data-testid={testId}>
+      <Select<TOption, TIsMulti>
+        inputId={name}
+        name={name}
+        options={options}
+        isMulti={isMulti}
+        value={value}
+        onChange={onChange}
+        styles={getCustomStyles<TOption, TIsMulti>()}
+        components={getSelectComponents<TOption, TIsMulti>(name)}
+        classNamePrefix="react-select"
+      />
+    </div>
   )
 }

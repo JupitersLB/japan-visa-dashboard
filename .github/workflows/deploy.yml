@@ -11,6 +11,7 @@ jobs:
 
     permissions:
       contents: read
+      checks: write
       id-token: write
 
     steps:
@@ -25,6 +26,31 @@ jobs:
 
       - name: Run frontend checks
         run: nix develop -c make check
+
+      - name: Install Playwright browsers
+        run: nix develop -c make e2e-install
+
+      - name: Run production Playwright tests
+        run: nix develop -c make e2e-prod
+
+      - name: Publish production Playwright test report
+        if: ${{ always() && hashFiles('test-results/junit.xml') != '' }}
+        uses: dorny/test-reporter@v1
+        with:
+          name: Playwright production
+          path: test-results/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload production Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-production-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
