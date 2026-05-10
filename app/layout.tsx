@@ -60,6 +60,7 @@ export const metadata: Metadata = {
 
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID
 const isProduction = process.env.NODE_ENV === 'production'
+const isGoogleAnalyticsEnabled = isProduction && Boolean(GA_TRACKING_ID)
 const isProductionBuild = process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
 const isNewRelicEnabled =
   isProduction &&
@@ -109,7 +110,7 @@ export default async function RootLayout({
     <RollbarProvider config={clientConfig}>
       <html lang="en">
         <head>
-          {isProduction && (
+          {isGoogleAnalyticsEnabled && (
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
               strategy="afterInteractive"
@@ -122,7 +123,7 @@ export default async function RootLayout({
         >
           <GoogleAnalytics
             measurementId={GA_TRACKING_ID}
-            isProduction={isProduction}
+            isProduction={isGoogleAnalyticsEnabled}
           />
           <ClientLayout>{children}</ClientLayout>
           {isNewRelicEnabled && (
