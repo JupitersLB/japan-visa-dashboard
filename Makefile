@@ -1,4 +1,4 @@
-.PHONY: help env-smoke deps dev app-build image-build start lint format image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check
+.PHONY: help env-smoke deps dev app-build image-build start lint format image-push push clean secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
 
 PROJECT_ID ?= japan-visa-predictions
 SERVICE_NAME ?= jp-visa-front
@@ -21,9 +21,12 @@ help:
 	@printf "  start      Start the built Next.js app.\n"
 	@printf "  lint       Run frontend lint checks.\n"
 	@printf "  format     Format frontend files.\n"
+	@printf "  version-check Verify VERSION, package.json, and release tag consistency.\n"
 	@printf "  secrets    Decrypt local frontend secrets.\n"
 	@printf "  service-deploy Deploy the public Cloud Run frontend service.\n"
 	@printf "  deploy     Build, push, and deploy the Cloud Run frontend service.\n"
+	@printf "  hotfix     Bump patch version, update changelog, commit, tag, and push.\n"
+	@printf "  release    Bump minor version, update changelog, commit, tag, and push.\n"
 	@printf "  check      Run env-smoke, lint, and production app build.\n"
 
 env-smoke:
@@ -50,7 +53,28 @@ format:
 app-build:
 	yarn build
 
-check: env-smoke lint app-build
+check: env-smoke version-check lint app-build
+
+version-check:
+	node scripts/release-version.mjs validate
+
+changelog:
+	node scripts/release-version.mjs changelog
+
+release_type:
+	@test -n "$(type)" || (printf "type is required. Use type=patch, type=minor, or type=major\n" && exit 1)
+	node scripts/release-version.mjs bump $(type)
+	$(MAKE) changelog
+	git add CHANGELOG.md VERSION package.json
+	git commit -m "Changelog updated for $$(tr -d '\"' < VERSION)" CHANGELOG.md VERSION package.json
+	git tag -a "$$(tr -d '\"' < VERSION)" -m "$$(tr -d '\"' < VERSION)"
+	git push --follow-tags
+
+hotfix:
+	$(MAKE) release_type type=patch
+
+release:
+	$(MAKE) release_type type=minor
 
 secrets:
 	sops -d secrets/.env.enc > .env
