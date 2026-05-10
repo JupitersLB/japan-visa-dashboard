@@ -1,4 +1,4 @@
-.PHONY: help env-smoke deps dev app-build standalone-assets image-build sourcemap-image-build runtime-sourcemaps-check start lint format e2e e2e-prod e2e-install image-push push clean registry-prune registry-prune-apply secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
+.PHONY: help env-smoke deps dev app-build standalone-assets image-build sourcemap-image-build runtime-sourcemaps-check start lint test-unit format e2e e2e-prod e2e-install image-push push clean registry-prune registry-prune-apply secrets service-deploy deploy sourcemaps extract-sourcemaps check version-check changelog release_type hotfix release
 
 PROJECT_ID ?= japan-visa-predictions
 SERVICE_NAME ?= jp-visa-front
@@ -25,6 +25,7 @@ help:
 	@printf "  registry-prune-apply Delete old registry images after previewing cleanup.\n"
 	@printf "  start      Start the built Next.js app.\n"
 	@printf "  lint       Run frontend lint checks.\n"
+	@printf "  test-unit  Run focused unit tests.\n"
 	@printf "  e2e        Run Playwright browser tests with mocked API responses.\n"
 	@printf "  e2e-prod   Build, then run Playwright tests against standalone output.\n"
 	@printf "  format     Format frontend files.\n"
@@ -54,6 +55,9 @@ start:
 lint:
 	yarn lint
 
+test-unit:
+	yarn test:unit
+
 e2e:
 	yarn e2e
 
@@ -75,7 +79,7 @@ standalone-assets: app-build
 	cp -R .next/static .next/standalone/.next/static
 	cp -R public .next/standalone/public
 
-check: env-smoke version-check lint app-build
+check: env-smoke version-check lint test-unit app-build
 
 version-check:
 	node scripts/release-version.mjs validate
