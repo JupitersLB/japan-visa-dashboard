@@ -5,8 +5,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /build
 
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
 
 COPY . .
 
@@ -14,7 +14,7 @@ ARG ROLLBAR_CODE_VERSION
 ENV NEXT_PUBLIC_ROLLBAR_CODE_VERSION=$ROLLBAR_CODE_VERSION
 
 RUN --mount=type=secret,id=frontend_env,target=/build/.env \
-    yarn build && rm -rf .next/cache
+    pnpm build && rm -rf .next/cache
 
 FROM node:20-alpine AS sourcemaps
 
@@ -27,10 +27,10 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /build/package.json /build/yarn.lock ./
+COPY --from=builder /build/package.json /build/pnpm-lock.yaml /build/pnpm-workspace.yaml ./
 
 # Install production dependencies only, and clean npm cache
-RUN yarn install --frozen-lockfile --production && yarn cache clean && rm -rf /root/.npm
+RUN corepack enable && pnpm install --frozen-lockfile --prod && pnpm store prune && rm -rf /root/.npm /root/.local/share/pnpm/store
 
 # Copy the built application and necessary files
 COPY --from=builder /build/utils utils
@@ -50,4 +50,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["yarn", "start"]
+CMD ["pnpm", "start"]

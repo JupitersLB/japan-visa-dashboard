@@ -15,7 +15,7 @@ CONCURRENCY ?= 20
 help:
 	@printf "Frontend commands:\n"
 	@printf "  env-smoke  Verify frontend toolchain availability.\n"
-	@printf "  deps       Install JavaScript dependencies from yarn.lock.\n"
+	@printf "  deps       Install JavaScript dependencies from pnpm-lock.yaml.\n"
 	@printf "  dev        Start the Next.js dev server.\n"
 	@printf "  app-build  Build the Next.js application.\n"
 	@printf "  image-build Build the frontend Docker image locally.\n"
@@ -39,39 +39,39 @@ help:
 
 env-smoke:
 	@node --version
-	@yarn --version
+	@pnpm --version
 	@gcloud --version | sed -n '1p'
 	@sops --version
 
 deps:
-	yarn install --frozen-lockfile
+	pnpm install --frozen-lockfile
 
 dev:
-	yarn dev
+	pnpm dev
 
 start:
-	yarn start
+	pnpm start
 
 lint:
-	yarn lint
+	pnpm lint
 
 test-unit:
-	yarn test:unit
+	pnpm test:unit
 
 e2e:
-	yarn e2e
+	pnpm e2e
 
 e2e-prod: standalone-assets
-	HOSTNAME=127.0.0.1 PORT=$${PLAYWRIGHT_PORT:-3100} PLAYWRIGHT_WEB_SERVER_COMMAND="yarn start" yarn e2e
+	HOSTNAME=127.0.0.1 PORT=$${PLAYWRIGHT_PORT:-3100} PLAYWRIGHT_WEB_SERVER_COMMAND="pnpm start" pnpm e2e
 
 e2e-install:
-	yarn e2e:install
+	pnpm e2e:install
 
 format:
-	yarn format
+	pnpm format
 
 app-build:
-	yarn build
+	pnpm build
 
 standalone-assets: app-build
 	mkdir -p .next/standalone/.next

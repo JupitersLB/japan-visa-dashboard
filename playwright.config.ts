@@ -4,7 +4,7 @@ const PORT = Number(process.env.PLAYWRIGHT_PORT || 3100)
 const baseURL = `http://127.0.0.1:${PORT}`
 const webServerCommand =
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ||
-  `yarn dev --hostname 127.0.0.1 --port ${PORT}`
+  `pnpm dev --hostname 127.0.0.1 --port ${PORT}`
 
 export default defineConfig({
   testDir: './tests/e2e',
