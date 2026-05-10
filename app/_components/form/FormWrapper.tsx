@@ -1,4 +1,4 @@
-import React, { ReactNode, ReactElement, FormEvent, useEffect } from 'react'
+import { ReactNode, ReactElement, FormEvent, useEffect } from 'react'
 import {
   FormProvider,
   useForm,
@@ -30,7 +30,7 @@ export const FormWrapper = <TFormValues extends FieldValues>({
 
   useEffect(() => {
     if (!submitButton && onSubmit) {
-      const subscription = watch((_, { name }) => {
+      const subscription = watch(() => {
         const currentValues = getValues()
         onSubmit(currentValues as TFormValues) // Dynamically trigger onSubmit
       })
