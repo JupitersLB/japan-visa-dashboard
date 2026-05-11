@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.0 - 2026-05-11
+
+- upgrade react select, rollbar, and react datepicker (#28)
+- Upgrade next js (#27)
+- switch to pnpm for min age dependency (#26)
+- add more tests around proxy and rate limiting (#25)
+- gate google script better (#24)
+- use modular imports (#23)
+- upgrade new relic to v13 (#22)
+- changes from review (#21)
+- Reduce rollbar map exposure (#20)
+
 ## v0.6.0 - 2026-05-10
 
 - improve pruning (#19)
