@@ -89,21 +89,26 @@ jobs:
           if [ -n "$CONFIGURED_SLACK_WEBHOOK_URL" ]; then
             slack_webhook_url="$CONFIGURED_SLACK_WEBHOOK_URL"
           else
-            set -a
-            . ./.env
-            set +a
+            if [ -f ./.env.production ]; then
+              set -a
+              . ./.env.production
+              set +a
+            fi
             slack_webhook_url="${SLACK_WEBHOOK_URL:-}"
           fi
 
           if [ -z "$slack_webhook_url" ]; then
-            echo "::error::SLACK_WEBHOOK_URL is not configured. Add it to the encrypted deployment .env, or as a GitHub Actions secret or variable."
-            exit 1
+            echo "::notice::SLACK_WEBHOOK_URL is not configured. Skipping Slack notification."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
           echo "::add-mask::$slack_webhook_url"
+          echo "configured=true" >> "$GITHUB_OUTPUT"
           echo "url=$slack_webhook_url" >> "$GITHUB_OUTPUT"
 
       - name: Notify Slack of successful deployment
+        if: ${{ steps.slack-webhook.outputs.configured == 'true' }}
         uses: slackapi/slack-github-action@v3.0.3
         with:
           webhook: ${{ steps.slack-webhook.outputs.url }}
