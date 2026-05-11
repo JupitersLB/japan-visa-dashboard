@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.11.0 - 2026-05-11
+
+- update env path (#33)
+
 ## v0.10.0 - 2026-05-11
 
 - make changes based on docs (#32)
