@@ -128,7 +128,9 @@ test('submits the default prediction request and renders results', async ({
   })
 })
 
-test('uses changed select values in the prediction request', async ({ page }) => {
+test('uses changed select values in the prediction request', async ({
+  page,
+}) => {
   const { predictionRequests } = await openPredictionPage(page)
 
   await page.getByTestId('location-select').click()
@@ -165,6 +167,42 @@ test('keeps the placeholder for a successful prediction with no chart data', asy
   await expect(page.getByTestId('prediction-chart-placeholder')).toBeVisible()
   await expect(page.getByTestId('prediction-chart')).toBeHidden()
   expect(predictionRequests).toHaveLength(1)
+})
+
+test('shows an inline error when the prediction request times out', async ({
+  page,
+}) => {
+  const pageErrors: Error[] = []
+  page.on('pageerror', (error) => pageErrors.push(error))
+
+  await page.route('**/api/meta/latest', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(latestMetadataResponse),
+    })
+  })
+
+  await page.route('**/api/predictions**', async (route) => {
+    await route.fulfill({
+      status: 504,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        detail: {
+          code: 'backend_proxy_timeout',
+        },
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await page.getByTestId('prediction-submit').click()
+
+  await expect(page.getByTestId('prediction-error')).toHaveText(
+    'The prediction request timed out. Please try again.'
+  )
+  await expect(page.getByTestId('prediction-estimation-value')).toHaveText('-')
+  expect(pageErrors).toEqual([])
 })
 
 test('renders one estimation month when average and weighted predictions match', async ({
