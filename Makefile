@@ -179,7 +179,7 @@ sourcemap-image-build: secrets
 	DOCKER_BUILDKIT=1 docker build --target sourcemaps --secret id=frontend_env,src="$(PRODUCTION_ENV_FILE)" --build-arg ROLLBAR_CODE_VERSION="$(ROLLBAR_CODE_VERSION)" -t $(SOURCEMAP_IMAGE) .
 
 runtime-sourcemaps-check: image-build
-	docker run --rm --entrypoint sh $(IMAGE) -c 'if find /app/.next -type f -name "*.map" | grep -q .; then find /app/.next -type f -name "*.map"; exit 1; fi'
+	docker run --rm --entrypoint sh $(IMAGE) -c 'if find /app/.next -type f -name "*.map" | grep -q .; then find /app/.next -type f -name "*.map"; exit 1; fi; ! grep -R "sourceMappingURL=.*\\.map" /app/.next/static /app/.next/standalone/.next/static'
 
 build: image-build
 
