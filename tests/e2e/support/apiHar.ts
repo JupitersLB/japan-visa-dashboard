@@ -32,7 +32,7 @@ const validateHarMode = (name: string, path: string, mode: HarMode) => {
   }
 }
 
-export const useApiHar = async (page: Page, name: string) => {
+export const applyApiHar = async (page: Page, name: string) => {
   const mode = process.env.PLAYWRIGHT_HAR_MODE as HarMode
   const path = harPath(name)
 

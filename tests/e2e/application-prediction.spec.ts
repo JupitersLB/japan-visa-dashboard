@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { useApiHar } from './support/apiHar'
+import { applyApiHar } from './support/apiHar'
 
 const latestMetadataResponse = {
   latest_month: '2025-03',
@@ -79,7 +79,7 @@ const openPredictionPage = async (
 }
 
 const openPredictionPageWithHar = async (page: Page, name: string) => {
-  await useApiHar(page, name)
+  await applyApiHar(page, name)
   await page.goto('/')
 }
 
@@ -98,6 +98,10 @@ const submitPrediction = async (
 }
 
 const recordedEstimationPattern = /^[A-Z][a-z]+ \d{4}(?: - [A-Z][a-z]+ \d{4})?$/
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-05-11T12:00:00+09:00'))
+})
 
 const expectPredictionRequest = (
   request: URL,
