@@ -18,8 +18,11 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false, // Ensure TypeScript errors block production builds
   },
   serverExternalPackages: ['newrelic'],
-  webpack: (config) => {
+  webpack: (config, { dev, isServer }) => {
     nrExternals(config)
+    if (!dev && !isServer) {
+      config.devtool = 'hidden-source-map'
+    }
     return config
   },
 }
