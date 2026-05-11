@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.10.0 - 2026-05-11
+
+- make changes based on docs (#32)
+
 ## v0.9.0 - 2026-05-11
 
 - Fix rollbar maps not reachable (#31)
