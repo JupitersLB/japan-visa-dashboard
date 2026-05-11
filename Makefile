@@ -194,9 +194,11 @@ registry-prune:
 registry-prune-apply:
 	DRY_RUN=false node scripts/prune-registry-images.mjs --image-repository=$(IMAGE_REPOSITORY)
 
-service-deploy:
+service-deploy: secrets
 	@test -f "$(PRODUCTION_ENV_FILE)" || (printf "$(PRODUCTION_ENV_FILE) is missing. Run make secrets first.\n" && exit 1)
-	@set -a; . "$(PRODUCTION_ENV_FILE)"; set +a; \
+	@env_file="$(PRODUCTION_ENV_FILE)"; \
+	case "$$env_file" in /*|*/*) env_source="$$env_file" ;; *) env_source="./$$env_file" ;; esac; \
+	set -a; . "$$env_source"; set +a; \
 	test -n "$$BACKEND_BASE_URL" || (printf "BACKEND_BASE_URL is required\n" && exit 1); \
 	env_vars="ENVIRONMENT=production,OPTIMIZE_MEMORY=true,NODE_OPTIONS=--max-old-space-size=1024,BACKEND_BASE_URL=$$BACKEND_BASE_URL,BACKEND_AUTH_MODE=google"; \
 	if [ -n "$$NEXT_PUBLIC_BASE_URL" ]; then env_vars="$$env_vars,NEXT_PUBLIC_BASE_URL=$$NEXT_PUBLIC_BASE_URL"; fi; \
@@ -216,7 +218,8 @@ service-deploy:
 		--max-instances $(MAX_INSTANCES) \
 		--update-env-vars "$$env_vars"
 
-deploy: image-push service-deploy
+deploy: image-push
+	$(MAKE) service-deploy
 	gcloud run services update-traffic $(SERVICE_NAME) --to-latest --region $(REGION) \
 		--project $(PROJECT_ID)
 
