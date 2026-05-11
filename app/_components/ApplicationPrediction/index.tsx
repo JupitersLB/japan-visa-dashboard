@@ -29,8 +29,10 @@ const initialValues: PredictionFormData = {
 
 export const ApplicationPrediction: FC = () => {
   const {
-    mutateAsync: fetchPrediction,
+    mutate: fetchPrediction,
     data: prediction,
+    error: predictionError,
+    isError: hasPredictionError,
     isPending: isPendingPredictions,
   } = useJBMutation<
     Pick<
@@ -73,8 +75,14 @@ export const ApplicationPrediction: FC = () => {
     [latestDateTimeString]
   )
 
-  const handleFormSubmit = (formData: PredictionFormData) =>
+  const handleFormSubmit = (formData: PredictionFormData) => {
     fetchPrediction(formData)
+  }
+
+  const predictionErrorMessage =
+    predictionError?.response?.status === 504
+      ? 'The prediction request timed out. Please try again.'
+      : 'The prediction request failed. Please try again.'
 
   return (
     <div className="flex w-full flex-col items-center justify-center h-full bg-background text-foreground md:p-8">
@@ -85,6 +93,15 @@ export const ApplicationPrediction: FC = () => {
               onFormSubmit={handleFormSubmit}
               initialDateTime={initialDateTime}
             />
+            {hasPredictionError && (
+              <p
+                role="alert"
+                data-testid="prediction-error"
+                className="mt-4 text-sm text-red-400"
+              >
+                {predictionErrorMessage}
+              </p>
+            )}
           </div>
 
           <WaitForLoad
