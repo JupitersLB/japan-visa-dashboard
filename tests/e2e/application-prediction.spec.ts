@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { useApiHar } from './support/apiHar'
 
 const latestMetadataResponse = {
   latest_month: '2025-03',
@@ -77,15 +78,26 @@ const openPredictionPage = async (
   return api
 }
 
+const openPredictionPageWithHar = async (page: Page, name: string) => {
+  await useApiHar(page, name)
+  await page.goto('/')
+}
+
 const submitPrediction = async (
   page: Page,
-  expectedEstimation = 'April 2025 - May 2025'
+  expectedEstimation: string | RegExp = 'April 2025 - May 2025'
 ) => {
+  const predictionRequest = page.waitForRequest('**/api/predictions**')
+
   await page.getByTestId('prediction-submit').click()
   await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
     expectedEstimation
   )
+
+  return new URL((await predictionRequest).url())
 }
+
+const recordedEstimationPattern = /^[A-Z][a-z]+ \d{4}(?: - [A-Z][a-z]+ \d{4})?$/
 
 const expectPredictionRequest = (
   request: URL,
@@ -110,28 +122,30 @@ test('loads the prediction form with mocked metadata', async ({ page }) => {
   await expect(page.getByTestId('prediction-estimation-value')).toHaveText('-')
 })
 
-test('submits the default prediction request and renders results', async ({
+test('submits the default prediction request and renders results @har:prediction-default', async ({
   page,
 }) => {
-  const { predictionRequests } = await openPredictionPage(page)
+  await openPredictionPageWithHar(page, 'prediction-default')
 
-  await submitPrediction(page)
+  const predictionRequest = await submitPrediction(
+    page,
+    recordedEstimationPattern
+  )
   await expect(page.getByTestId('prediction-chart-placeholder')).toBeHidden()
   await expect(
     page.getByTestId('prediction-chart').locator('canvas')
   ).toHaveCount(1)
 
-  expect(predictionRequests).toHaveLength(1)
-  expectPredictionRequest(predictionRequests[0], {
+  expectPredictionRequest(predictionRequest, {
     location: 'tokyo',
     applicationType: 'permanent_residence',
   })
 })
 
-test('uses changed select values in the prediction request', async ({
+test('uses changed select values in the prediction request @har:prediction-osaka-extension', async ({
   page,
 }) => {
-  const { predictionRequests } = await openPredictionPage(page)
+  await openPredictionPageWithHar(page, 'prediction-osaka-extension')
 
   await page.getByTestId('location-select').click()
   await page.getByTestId('location-option-osaka').click()
@@ -139,10 +153,12 @@ test('uses changed select values in the prediction request', async ({
   await page.getByTestId('application-type-select').click()
   await page.getByTestId('application_type-option-extension').click()
 
-  await submitPrediction(page)
+  const predictionRequest = await submitPrediction(
+    page,
+    recordedEstimationPattern
+  )
 
-  expect(predictionRequests).toHaveLength(1)
-  expectPredictionRequest(predictionRequests[0], {
+  expectPredictionRequest(predictionRequest, {
     location: 'osaka',
     applicationType: 'extension',
   })

@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process'
+
 const defaultBackendBaseUrl = 'http://127.0.0.1:8000'
 const metadataIdentityUrl =
   'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity'
@@ -59,8 +61,18 @@ const usesGoogleIdentity = () =>
   process.env.BACKEND_AUTH_MODE === 'google' ||
   Boolean(process.env.K_SERVICE && getBackendBaseUrl().startsWith('https://'))
 
+const allowsLocalTokenSource = () =>
+  process.env.NODE_ENV === 'test' || Boolean(process.env.PLAYWRIGHT_HAR_MODE)
+
 const getBackendAudience = () =>
   process.env.BACKEND_ID_TOKEN_AUDIENCE || getBackendBaseUrl()
+
+const getGcloudIdentityTokenArgs = () => {
+  const args = ['auth', 'print-identity-token']
+  const audience = process.env.BACKEND_GCLOUD_ID_TOKEN_AUDIENCE
+  if (audience) args.push(`--audiences=${audience}`)
+  return args
+}
 
 const getNumericSetting = (value: string | undefined, fallback: number) => {
   const parsed = Number(value)
@@ -143,6 +155,43 @@ const setCachedResponse = (key: string, body: JsonBody, ttlMs: number) => {
 }
 
 const getIdentityToken = async () => {
+  if (process.env.BACKEND_ID_TOKEN) return process.env.BACKEND_ID_TOKEN
+
+  if (process.env.BACKEND_TOKEN_SOURCE === 'gcloud') {
+    if (!allowsLocalTokenSource()) {
+      throw new BackendProxyError(500, {
+        detail: {
+          code: 'backend_token_source_not_allowed',
+        },
+      })
+    }
+
+    try {
+      const now = Date.now()
+      if (cachedIdentityToken && cachedIdentityToken.expiresAt > now) {
+        return cachedIdentityToken.token
+      }
+
+      const token = execFileSync('gcloud', getGcloudIdentityTokenArgs(), {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim()
+
+      cachedIdentityToken = {
+        token,
+        expiresAt: now + tokenCacheTtlMs,
+      }
+
+      return token
+    } catch {
+      throw new BackendProxyError(502, {
+        detail: {
+          code: 'backend_gcloud_identity_token_unavailable',
+        },
+      })
+    }
+  }
+
   const now = Date.now()
   if (cachedIdentityToken && cachedIdentityToken.expiresAt > now) {
     return cachedIdentityToken.token

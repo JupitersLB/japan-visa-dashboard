@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { execFileSync } from 'node:child_process'
+
+vi.mock('node:child_process', () => ({
+  execFileSync: vi.fn(),
+}))
 
 const originalEnv = process.env
 
@@ -11,6 +16,7 @@ afterEach(() => {
   process.env = originalEnv
   vi.unstubAllGlobals()
   vi.useRealTimers()
+  vi.mocked(execFileSync).mockReset()
 })
 
 describe('fetchBackendJson', () => {
@@ -119,5 +125,130 @@ describe('fetchBackendJson', () => {
     expect(new Headers(backendCall[1]?.headers).get('Authorization')).toBe(
       'Bearer identity-token'
     )
+  })
+
+  it('uses a provided backend identity token without calling metadata', async () => {
+    process.env = {
+      ...originalEnv,
+      BACKEND_BASE_URL: 'https://backend.example',
+      BACKEND_AUTH_MODE: 'google',
+      BACKEND_ID_TOKEN: 'local-identity-token',
+    }
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        ok: true,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { fetchBackendJson } = await importBackendProxy()
+
+    await expect(fetchBackendJson('/meta/latest')).resolves.toEqual({
+      ok: true,
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      'https://backend.example/meta/latest'
+    )
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe(
+      'Bearer local-identity-token'
+    )
+  })
+
+  it('uses a gcloud identity token source during HAR recording', async () => {
+    process.env = {
+      ...originalEnv,
+      BACKEND_BASE_URL: 'https://backend.example',
+      BACKEND_AUTH_MODE: 'google',
+      BACKEND_TOKEN_SOURCE: 'gcloud',
+      PLAYWRIGHT_HAR_MODE: 'record',
+    }
+    vi.mocked(execFileSync).mockReturnValue('gcloud-identity-token\n')
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        ok: true,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { fetchBackendJson } = await importBackendProxy()
+
+    await expect(fetchBackendJson('/meta/latest')).resolves.toEqual({
+      ok: true,
+    })
+
+    expect(execFileSync).toHaveBeenCalledWith(
+      'gcloud',
+      ['auth', 'print-identity-token'],
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    )
+    expect(new Headers(fetchMock.mock.calls[0][1]?.headers).get('Authorization')).toBe(
+      'Bearer gcloud-identity-token'
+    )
+  })
+
+  it('passes an explicit gcloud token audience when configured', async () => {
+    process.env = {
+      ...originalEnv,
+      BACKEND_BASE_URL: 'https://backend.example',
+      BACKEND_AUTH_MODE: 'google',
+      BACKEND_TOKEN_SOURCE: 'gcloud',
+      BACKEND_GCLOUD_ID_TOKEN_AUDIENCE: 'https://audience.example',
+      PLAYWRIGHT_HAR_MODE: 'record',
+    }
+    vi.mocked(execFileSync).mockReturnValue('gcloud-identity-token\n')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          ok: true,
+        })
+      )
+    )
+
+    const { fetchBackendJson } = await importBackendProxy()
+
+    await expect(fetchBackendJson('/meta/latest')).resolves.toEqual({
+      ok: true,
+    })
+
+    expect(execFileSync).toHaveBeenCalledWith(
+      'gcloud',
+      [
+        'auth',
+        'print-identity-token',
+        '--audiences=https://audience.example',
+      ],
+      {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    )
+  })
+
+  it('rejects gcloud token source outside test and HAR recording modes', async () => {
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'development',
+      BACKEND_BASE_URL: 'https://backend.example',
+      BACKEND_AUTH_MODE: 'google',
+      BACKEND_TOKEN_SOURCE: 'gcloud',
+    }
+
+    const { fetchBackendJson } = await importBackendProxy()
+
+    await expect(fetchBackendJson('/meta/latest')).rejects.toMatchObject({
+      status: 500,
+      body: {
+        detail: {
+          code: 'backend_token_source_not_allowed',
+        },
+      },
+    })
+    expect(execFileSync).not.toHaveBeenCalled()
   })
 })
