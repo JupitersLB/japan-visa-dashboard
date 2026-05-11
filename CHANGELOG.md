@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.8.0 - 2026-05-11
+
+- Add har setup (#29)
+- fix error handling (#30)
+
 ## v0.7.0 - 2026-05-11
 
 - upgrade react select, rollbar, and react datepicker (#28)
