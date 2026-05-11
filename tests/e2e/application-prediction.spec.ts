@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import type { BackendPredictionResponse } from '../../utils/backendApi'
 import { applyApiHar } from './support/apiHar'
 
 const latestMetadataResponse = {
@@ -7,7 +8,7 @@ const latestMetadataResponse = {
   row_count: 1234,
 }
 
-const predictionResponse = {
+const predictionResponse: BackendPredictionResponse = {
   filters: {
     location: 'tokyo',
     application_type: 'permanent_residence',
@@ -41,11 +42,9 @@ const predictionResponse = {
   monthly_weighted: 45,
 }
 
-type PredictionResponse = typeof predictionResponse
-
 const mockApiResponses = async (
   page: Page,
-  prediction: PredictionResponse = predictionResponse
+  prediction: BackendPredictionResponse = predictionResponse
 ) => {
   const predictionRequests: URL[] = []
 
@@ -71,7 +70,7 @@ const mockApiResponses = async (
 
 const openPredictionPage = async (
   page: Page,
-  prediction?: PredictionResponse
+  prediction?: BackendPredictionResponse
 ) => {
   const api = await mockApiResponses(page, prediction)
   await page.goto('/')
@@ -171,7 +170,7 @@ test('uses changed select values in the prediction request @har:prediction-osaka
 test('keeps the placeholder for a successful prediction with no chart data', async ({
   page,
 }) => {
-  const emptyPredictionResponse: PredictionResponse = {
+  const emptyPredictionResponse: BackendPredictionResponse = {
     ...predictionResponse,
     burn_down_data: [],
     predicted_zero_month_average: null,
@@ -228,7 +227,7 @@ test('shows an inline error when the prediction request times out', async ({
 test('renders one estimation month when average and weighted predictions match', async ({
   page,
 }) => {
-  const sameMonthPredictionResponse: PredictionResponse = {
+  const sameMonthPredictionResponse: BackendPredictionResponse = {
     ...predictionResponse,
     predicted_zero_month_average: '2025-04',
     predicted_zero_month_weighted: '2025-04',
