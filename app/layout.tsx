@@ -6,19 +6,10 @@ import Script from 'next/script'
 import { GoogleAnalytics } from './_components/analytics'
 import { Provider as RollbarProvider } from '@rollbar/react'
 import { clientConfig } from '@/utils/rollbar'
-import newrelic from 'newrelic'
-import { PHASE_PRODUCTION_BUILD } from 'next/constants'
-
-type NewRelicAgent = {
-  collector?: {
-    isConnected?: () => boolean
-  }
-  on?: (event: 'connected', callback: () => void) => void
-}
-
-type NewRelicRuntime = {
-  agent?: NewRelicAgent
-}
+import {
+  getNewRelicBrowserTimingHeader,
+  isNewRelicBrowserTimingEnabled,
+} from '@/utils/newRelic'
 
 const siteUrl = (() => {
   const configuredUrl =
@@ -61,50 +52,13 @@ export const metadata: Metadata = {
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID
 const isProduction = process.env.NODE_ENV === 'production'
 const isGoogleAnalyticsEnabled = isProduction && Boolean(GA_TRACKING_ID)
-const isProductionBuild = process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
-const isNewRelicEnabled =
-  isProduction &&
-  !isProductionBuild &&
-  Boolean(process.env.NEW_RELIC_LICENSE_KEY && process.env.NEW_RELIC_APP_NAME)
-const NEW_RELIC_CONNECT_TIMEOUT_MS = 1000
-
-const waitForNewRelicConnection = async (agent: NewRelicAgent) => {
-  if (
-    !agent.collector?.isConnected ||
-    agent.collector.isConnected() !== false ||
-    !agent.on
-  ) {
-    return
-  }
-
-  await Promise.race([
-    new Promise<void>((resolve) => {
-      agent.on?.('connected', resolve)
-    }),
-    new Promise<void>((resolve) => {
-      setTimeout(resolve, NEW_RELIC_CONNECT_TIMEOUT_MS)
-    }),
-  ])
-}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  if (isNewRelicEnabled) {
-    const newrelicAgent = (newrelic as unknown as NewRelicRuntime).agent
-    if (newrelicAgent) {
-      await waitForNewRelicConnection(newrelicAgent)
-    }
-  }
-
-  const browserTimingHeader = isNewRelicEnabled
-    ? newrelic.getBrowserTimingHeader({
-        hasToRemoveScriptWrapper: true,
-        allowTransactionlessInjection: true,
-      })
-    : ''
+  const browserTimingHeader = await getNewRelicBrowserTimingHeader()
 
   return (
     <RollbarProvider config={clientConfig}>
@@ -126,7 +80,7 @@ export default async function RootLayout({
             isProduction={isGoogleAnalyticsEnabled}
           />
           <ClientLayout>{children}</ClientLayout>
-          {isNewRelicEnabled && (
+          {isNewRelicBrowserTimingEnabled && (
             <Script
               id="nr-browser-agent"
               strategy="beforeInteractive"

@@ -13,7 +13,7 @@ COPY . .
 ARG ROLLBAR_CODE_VERSION
 ENV NEXT_PUBLIC_ROLLBAR_CODE_VERSION=$ROLLBAR_CODE_VERSION
 
-RUN --mount=type=secret,id=frontend_env,target=/build/.env \
+RUN --mount=type=secret,id=frontend_env,target=/build/.env.production \
     pnpm build && rm -rf .next/cache
 
 FROM node:20-alpine AS sourcemaps

@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
+import type { BackendPredictionResponse } from '../../utils/backendApi'
+import { applyApiHar } from './support/apiHar'
 
 const latestMetadataResponse = {
   latest_month: '2025-03',
@@ -6,7 +8,7 @@ const latestMetadataResponse = {
   row_count: 1234,
 }
 
-const predictionResponse = {
+const predictionResponse: BackendPredictionResponse = {
   filters: {
     location: 'tokyo',
     application_type: 'permanent_residence',
@@ -40,11 +42,9 @@ const predictionResponse = {
   monthly_weighted: 45,
 }
 
-type PredictionResponse = typeof predictionResponse
-
 const mockApiResponses = async (
   page: Page,
-  prediction: PredictionResponse = predictionResponse
+  prediction: BackendPredictionResponse = predictionResponse
 ) => {
   const predictionRequests: URL[] = []
 
@@ -70,22 +70,37 @@ const mockApiResponses = async (
 
 const openPredictionPage = async (
   page: Page,
-  prediction?: PredictionResponse
+  prediction?: BackendPredictionResponse
 ) => {
   const api = await mockApiResponses(page, prediction)
   await page.goto('/')
   return api
 }
 
+const openPredictionPageWithHar = async (page: Page, name: string) => {
+  await applyApiHar(page, name)
+  await page.goto('/')
+}
+
 const submitPrediction = async (
   page: Page,
-  expectedEstimation = 'April 2025 - May 2025'
+  expectedEstimation: string | RegExp = 'April 2025 - May 2025'
 ) => {
+  const predictionRequest = page.waitForRequest('**/api/predictions**')
+
   await page.getByTestId('prediction-submit').click()
   await expect(page.getByTestId('prediction-estimation-value')).toHaveText(
     expectedEstimation
   )
+
+  return new URL((await predictionRequest).url())
 }
+
+const recordedEstimationPattern = /^[A-Z][a-z]+ \d{4}(?: - [A-Z][a-z]+ \d{4})?$/
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-05-11T12:00:00+09:00'))
+})
 
 const expectPredictionRequest = (
   request: URL,
@@ -110,28 +125,30 @@ test('loads the prediction form with mocked metadata', async ({ page }) => {
   await expect(page.getByTestId('prediction-estimation-value')).toHaveText('-')
 })
 
-test('submits the default prediction request and renders results', async ({
+test('submits the default prediction request and renders results @har:prediction-default', async ({
   page,
 }) => {
-  const { predictionRequests } = await openPredictionPage(page)
+  await openPredictionPageWithHar(page, 'prediction-default')
 
-  await submitPrediction(page)
+  const predictionRequest = await submitPrediction(
+    page,
+    recordedEstimationPattern
+  )
   await expect(page.getByTestId('prediction-chart-placeholder')).toBeHidden()
   await expect(
     page.getByTestId('prediction-chart').locator('canvas')
   ).toHaveCount(1)
 
-  expect(predictionRequests).toHaveLength(1)
-  expectPredictionRequest(predictionRequests[0], {
+  expectPredictionRequest(predictionRequest, {
     location: 'tokyo',
     applicationType: 'permanent_residence',
   })
 })
 
-test('uses changed select values in the prediction request', async ({
+test('uses changed select values in the prediction request @har:prediction-osaka-extension', async ({
   page,
 }) => {
-  const { predictionRequests } = await openPredictionPage(page)
+  await openPredictionPageWithHar(page, 'prediction-osaka-extension')
 
   await page.getByTestId('location-select').click()
   await page.getByTestId('location-option-osaka').click()
@@ -139,10 +156,12 @@ test('uses changed select values in the prediction request', async ({
   await page.getByTestId('application-type-select').click()
   await page.getByTestId('application_type-option-extension').click()
 
-  await submitPrediction(page)
+  const predictionRequest = await submitPrediction(
+    page,
+    recordedEstimationPattern
+  )
 
-  expect(predictionRequests).toHaveLength(1)
-  expectPredictionRequest(predictionRequests[0], {
+  expectPredictionRequest(predictionRequest, {
     location: 'osaka',
     applicationType: 'extension',
   })
@@ -151,7 +170,7 @@ test('uses changed select values in the prediction request', async ({
 test('keeps the placeholder for a successful prediction with no chart data', async ({
   page,
 }) => {
-  const emptyPredictionResponse: PredictionResponse = {
+  const emptyPredictionResponse: BackendPredictionResponse = {
     ...predictionResponse,
     burn_down_data: [],
     predicted_zero_month_average: null,
@@ -208,7 +227,7 @@ test('shows an inline error when the prediction request times out', async ({
 test('renders one estimation month when average and weighted predictions match', async ({
   page,
 }) => {
-  const sameMonthPredictionResponse: PredictionResponse = {
+  const sameMonthPredictionResponse: BackendPredictionResponse = {
     ...predictionResponse,
     predicted_zero_month_average: '2025-04',
     predicted_zero_month_weighted: '2025-04',

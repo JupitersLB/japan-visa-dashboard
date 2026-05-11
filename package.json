@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "start": "NODE_OPTIONS='-r dotenv/config -r newrelic' node .next/standalone/server.js",
+    "start": "NODE_OPTIONS='-r newrelic' node .next/standalone/server.js",
     "lint": "eslint app next.config.ts",
     "lint:fix": "eslint app next.config.ts --fix",
     "test:unit": "vitest run",

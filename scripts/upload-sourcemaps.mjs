@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import dotenv from 'dotenv'
 
-dotenv.config({ path: '.env' })
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env.production' })
 
 const args = process.argv.slice(2)
 

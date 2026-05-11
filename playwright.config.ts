@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
+import dotenv from 'dotenv'
+
+dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || '.env.test' })
 
 const PORT = Number(process.env.PLAYWRIGHT_PORT || 3100)
 const baseURL = `http://127.0.0.1:${PORT}`
@@ -23,6 +26,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
+    timezoneId: 'Asia/Tokyo',
   },
   webServer: {
     command: webServerCommand,

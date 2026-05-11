@@ -2,9 +2,10 @@ node_modules
 npm-debug.log
 .DS_Store
 .env
+.env.*
+.envrc
 .next
 .env.docker
-.env.local
 local-sourcemaps
 newrelic_agent.log
 secrets

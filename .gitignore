@@ -1,8 +1,7 @@
 # Local environment
 .env
 .env.*
-!.env.enc
-!.env.local.enc
+!secrets/.env*.enc
 
 .direnv/
 
